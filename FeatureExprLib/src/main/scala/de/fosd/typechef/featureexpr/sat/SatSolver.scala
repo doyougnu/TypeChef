@@ -7,6 +7,7 @@ import org.sat4j.specs.{IConstr, ContradictionException}
 import org.sat4j.minisat.SolverFactory;
 import scala.Predef._
 ;
+import java.io._
 
 /**
  * connection to the SAT4j SAT solver
@@ -23,10 +24,20 @@ class SatSolver {
   val CACHING = false
 
   def isSatisfiable(exprCNF: SATFeatureExpr, featureModel: SATFeatureModel = SATNoFeatureModel): Boolean = {
+    println("[Debug::SatSolver::isSatisfiable]: Do we have fm? ==> " + (nfm(featureModel) != SATNoFeatureModel))
     (if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
+      // println("[Debug::SatSolver::isSatisfiable]: Cache hit with feature model " + featureModel + "\n")
       SatSolverCache.get(nfm(featureModel))
     else
-      new SatSolverImpl(nfm(featureModel), false)).isSatisfiable(exprCNF)
+      // println("[Debug::SatSolver::isSatisfiable]: Cache miss with feature model " + featureModel + "\n")
+      new SatSolverImpl(nfm(featureModel),false)).isSatisfiable(exprCNF)
+    // if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
+    //   // println("[Debug::SatSolver::isSatisfiable]: Cache hit with feature model " + featureModel + "\n")
+    //   SatSolverCache.get(nfm(featureModel))
+    // else
+    //   // println("[Debug::SatSolver::isSatisfiable]: Cache miss with feature model " + featureModel + "\n")
+    //   new SatSolverImpl(nfm(featureModel), false).isSatisfiable(exprCNF)
+
   }
 
   /**
@@ -117,6 +128,11 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
     val startTime = System.currentTimeMillis();
 
+val output = new BufferedWriter(new FileWriter("SAT_problems.txt", true))
+// print("Writing: " + exprCNF)
+output.write(exprCNF + "\n")
+output.close()
+
     if (PROFILING)
       print("<SAT " + countClauses(exprCNF) + " with " + countFlags(exprCNF) + " flags; ")
 
@@ -168,6 +184,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
         if (PROFILING)
           print(";")
 
+        // [VSAT]: Jeff, Paul, connection to sat4j here!
         val result = solver.isSatisfiable(assumptions)
         // print reason for unsatisfiability
         /*

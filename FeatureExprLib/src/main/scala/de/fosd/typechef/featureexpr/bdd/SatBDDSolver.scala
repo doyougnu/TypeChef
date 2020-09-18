@@ -7,7 +7,7 @@ import org.sat4j.minisat.SolverFactory
 import org.sat4j.specs.{IConstr, ContradictionException}
 import de.fosd.typechef.featureexpr.SingleFeatureExpr
 ;
-
+import java.io._
 
 /**
  * connection to the SAT4j SAT solver
@@ -193,6 +193,15 @@ class SatSolverImpl(featureModel: BDDFeatureModel) {
                 uniqueFlagIds.get(f).map(assumptions.push(_))
             for (f <- featureModel.assumedFalse)
                 uniqueFlagIds.get(f).map(id => assumptions.push(-id))
+
+
+val output = new BufferedWriter(new FileWriter("BDD_problems.txt", true))
+print("Writing BDD: " + assumptions + "\n")
+output.write(assumptions + "\n")
+output.close()
+
+
+
 
             //update max size (nothing happens if smaller than previous setting)
             solver.newVar(uniqueFlagIds.size)
