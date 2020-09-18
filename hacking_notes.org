@@ -1,0 +1,28 @@
+* Figuring out the sat interface
+** Frontend
+*** isSatisfiable method called from featureexpr.FeatureExpr
+** FeatureExpr
+** Solver Interface
+*** in "featureexpr/sat/SatSolver"
+
+*** Important Question to answer
+
+     - [ ] find out when the caching is done; is it done before or after queries?
+
+       - [ ] we know caching is hit before an ~isSat~ call, but we don't know if
+         caching is hit before or after queries
+
+     - [ ] As a baseline, how is TypeChef handling the feature model? What is the
+       interface to the solver here, is the FM added only once and then
+       incremental solving occurs for subsequent queries
+
+     - [ ] Which of the queries come from the parsing and which from the type checking?
+
+     - [ ] Are there any advantages in doing the Parsing, Type Checking, and data
+       flow analysis at the same time
+
+**** Caching hit notes
+     - Note taken on [2020-09-17 Thu 21:58] \\
+       We found the connection to Sat4j in
+       /store/Research/TypeChef/FeatureExprLib/src/main/scala/de/fosd/typechef/featureexpr/sat line 180
+       we have annotated important lines with ~[VSAT]~
