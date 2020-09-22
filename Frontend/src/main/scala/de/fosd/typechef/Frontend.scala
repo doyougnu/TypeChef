@@ -121,6 +121,11 @@ object Frontend extends EnforceTreeHelper {
                 println("... failed reading AST\n")
         }
 
+// [VSAT]: Jeff and Paul: log the feature models from the options
+fullFM.exportFM2DNF(fullFM, "FullFeatureModels.txt")
+smallFM.exportFM2DNF(smallFM, "SmallFeatureModels.txt")
+
+
         stopWatch.start("lexing")
         //no parsing if read serialized ast
         val in = if (ast == null) {

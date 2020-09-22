@@ -7,22 +7,68 @@
 
 *** Important Question to answer
 
-     - [ ] find out when the caching is done; is it done before or after queries?
+     - 1 [ ] find out when the caching is done; is it done before or after queries?
 
        - [ ] we know caching is hit before an ~isSat~ call, but we don't know if
          caching is hit before or after queries
 
-     - [ ] As a baseline, how is TypeChef handling the feature model? What is the
+     - 2 [X] As a baseline, how is TypeChef handling the feature model? What is the
        interface to the solver here, is the FM added only once and then
        incremental solving occurs for subsequent queries
 
-     - [ ] Which of the queries come from the parsing and which from the type checking?
+     - 3 [ ] Which of the queries come from the parsing and which from the type checking?
 
-     - [ ] Are there any advantages in doing the Parsing, Type Checking, and data
+     - 4 [ ] Are there any advantages in doing the Parsing, Type Checking, and data
        flow analysis at the same time
 
-**** Caching hit notes
+**** 1 Caching hit notes
+     - Note taken on [2020-09-17 Thu 23:18] \\
+       line 60 of ~CTypeSystemFrontend.scala~ is a good starting point which shows the
+       feature model and abstract syntax tree
      - Note taken on [2020-09-17 Thu 21:58] \\
        We found the connection to Sat4j in
        /store/Research/TypeChef/FeatureExprLib/src/main/scala/de/fosd/typechef/featureexpr/sat line 180
        we have annotated important lines with ~[VSAT]~
+
+**** 2 FM handling
+     - Note taken on [2020-09-17 Thu 22:53] \\
+       FMs are added at least once, and then cached into ~SatSolverImpl~ but we do not
+       know if type chef is doing incremental solving with queries yet
+
+
+*** <2020-09-21 Mon>
+
+**** 3 Where is the feature model handled and going?
+
+     - Note taken on [2020-09-21 Mon 23:00] \\
+       In SatSolver(), when a feature model is not in the cache, TypeChef creates a
+       SatSolverImpl instance which holds the ~sat4j~ solver and is immediately fed the
+       feature model. The feature model is passed in as an argument to the
+       SatSolverImpl contructor. The bottom line, the sat4j solver never operates
+       without the feature model, and then performs incremental solving after the
+       feature model is already loaded.
+
+     - Note taken on [2020-09-21 Mon 22:36] \\
+       The sat solver has a sub class called SatSolverImpl. A feature model is
+       cached in a map, if the feature model has not been sent, then it is passed
+       to SatSolver, which will create a sat solver impl instance, and pass the
+       feature model to SatSolverImpl constructor. See line 148 in
+       SATFeatureExpr and line 31 in SatSolver:
+       #+begin_src
+        cacheIsSatisfiable.getOrElseUpdate(f, new SatSolver().isSatisfiable(toCnfEquiSat, f))
+        #+end_src
+
+        #+begin_src
+        (if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
+          SatSolverCache.get(nfm(featureModel))
+        else
+          new SatSolverImpl(nfm(featureModel),false)).isSatisfiable(exprCNF)
+        #+end_src
+
+     - Note taken on [2020-09-21 Mon 21:46] \\
+       in Fronted.scala function ~processFile~ the feature model is input
+       through the options record
+
+***** Next Step
+      Check under which feature model the queries are made, then group queries
+      by feature model, and construct choices over the queries.

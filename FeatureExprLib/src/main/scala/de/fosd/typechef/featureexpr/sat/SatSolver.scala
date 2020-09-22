@@ -15,6 +15,7 @@ import java.io._
  * may reuse instance
  */
 
+
 class SatSolver {
   /**
    * caching can reuse SAT solver instances, but experience
@@ -23,21 +24,18 @@ class SatSolver {
    */
   val CACHING = false
 
+
+  val output = new BufferedWriter(new FileWriter("SatSolverDebugLog.txt", true))
+
+
   def isSatisfiable(exprCNF: SATFeatureExpr, featureModel: SATFeatureModel = SATNoFeatureModel): Boolean = {
-    println("[Debug::SatSolver::isSatisfiable]: Do we have fm? ==> " + (nfm(featureModel) != SATNoFeatureModel))
+    output.write("[Debug::SatSolver::isSatisfiable]: Do we have fm? ==> " + (nfm(featureModel) != SATNoFeatureModel) + "\n")
+    output.write("[Debug::SatSolver::isSatisfiable]: Will we have a cache hit? ==> " + (CACHING && (nfm(featureModel) != SATNoFeatureModel)) + "\n")
+    output.flush()
     (if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
-      // println("[Debug::SatSolver::isSatisfiable]: Cache hit with feature model " + featureModel + "\n")
       SatSolverCache.get(nfm(featureModel))
     else
-      // println("[Debug::SatSolver::isSatisfiable]: Cache miss with feature model " + featureModel + "\n")
       new SatSolverImpl(nfm(featureModel),false)).isSatisfiable(exprCNF)
-    // if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
-    //   // println("[Debug::SatSolver::isSatisfiable]: Cache hit with feature model " + featureModel + "\n")
-    //   SatSolverCache.get(nfm(featureModel))
-    // else
-    //   // println("[Debug::SatSolver::isSatisfiable]: Cache miss with feature model " + featureModel + "\n")
-    //   new SatSolverImpl(nfm(featureModel), false).isSatisfiable(exprCNF)
-
   }
 
   /**
@@ -170,6 +168,7 @@ output.close()
         try {
           for (cnf <- cnfs; clause <- CNFHelper.getCNFClauses(cnf)) {
             if (CNFHelper.isLiteral(clause))
+              // [VSAT]: Jeff and Paul, this is the push, record the clause
               assumptions.push(getAtomicId(uniqueFlagIds, clause))
             else {
               val constr = solver.addClause(getClauseVec(uniqueFlagIds, clause))
@@ -185,6 +184,7 @@ output.close()
           print(";")
 
         // [VSAT]: Jeff, Paul, connection to sat4j here!
+        // [VSAT]: Jeff, Paul, what is this actually?
         val result = solver.isSatisfiable(assumptions)
         // print reason for unsatisfiability
         /*
@@ -218,6 +218,7 @@ output.close()
       } finally {
         if (isReused)
           for (constr <- constraintGroup)
+            // [VSAT]: Jef and paul this is a pop, we should record the constr
             assert(solver.removeConstr(constr))
       }
     } finally {
