@@ -58,7 +58,7 @@
         cacheIsSatisfiable.getOrElseUpdate(f, new SatSolver().isSatisfiable(toCnfEquiSat, f))
         #+end_src
 
-        #+begin_src
+       #+begin_src
         (if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
           SatSolverCache.get(nfm(featureModel))
         else
@@ -72,3 +72,15 @@
 ***** Next Step
       Check under which feature model the queries are made, then group queries
       by feature model, and construct choices over the queries.
+
+*** <2020-10-06 Tue>
+
+**** Questions in order of importance
+     - Note taken on [2020-10-07 Wed 00:09] \\
+       We added several methods to the front end class and the solver class. We experienced issues using environment variables and just decided to rely on files instead. The system for recording works like this: we define a file ~VSAT_MODE~ which holds the mode the present query, then we mutate that file using ~vsat_set_env~ to record which mode type chef is in. We then use ~vsat_record_query~ to record the queries to their respective files, that is lexing queries go to ~SAT_problems_LEXING.txt~ and so on.
+
+     - [X] Jeff and Paul, AI: focus on finding which queries are the Parser
+           queries, and which are the Type Checking queries
+
+     - [ ] Jeff and Paul, AI: try to figure out if BDDs are created from PCs and
+           then cached and used in the solving routine.

@@ -12,10 +12,12 @@ import de.fosd.typechef.parser.c.TranslationUnit
 import de.fosd.typechef.featureexpr.FeatureExpr
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
+import scala.sys.process.Process
+
 object Frontend extends EnforceTreeHelper {
 
-
     def main(args: Array[String]) {
+      vsat_clean_env()
         // load options
         val opt = new FrontendOptionsWithConfigFiles()
         try {
@@ -91,6 +93,16 @@ object Frontend extends EnforceTreeHelper {
         }
     }
 
+  def vsat_set_env(mode: String){
+    val mode_file_name = "/home/doyougnu/research/TypeChef-BusyboxAnalysis/VSAT_MODE"
+    val output = new BufferedWriter(new FileWriter(mode_file_name, false))
+    output.write(mode)
+    output.close()
+  }
+
+  def vsat_clean_env(){
+    vsat_set_env("NO_MODE")
+  }
 
     def processFile(opt: FrontendOptions) {
         val errorXML = new ErrorXML(opt.getErrorXMLFile)
@@ -122,22 +134,28 @@ object Frontend extends EnforceTreeHelper {
         }
 
 // [VSAT]: Jeff and Paul: log the feature models from the options
-fullFM.exportFM2DNF(fullFM, "FullFeatureModels.txt")
-smallFM.exportFM2DNF(smallFM, "SmallFeatureModels.txt")
+// fullFM.exportFM2DNF(fullFM, "FullFeatureModels.txt")
+// smallFM.exportFM2DNF(smallFM, "SmallFeatureModels.txt")
 
 
         stopWatch.start("lexing")
+  vsat_set_env("LEXING")
         //no parsing if read serialized ast
         val in = if (ast == null) {
             println("#lexing")
             lex(opt)
         } else null
 
+  vsat_clean_env()
 
         if (opt.parse) {
             println("#parsing")
+  vsat_set_env("PARSING") // [VSAT]: Set env variable to indicate parsing queries
             stopWatch.start("parsing")
 
+          // [VSAT]: Jeff and Paul: Parsing begins after lexing of course. Here
+          // is the block where if the parsing is successful then it moves to
+          // type checking
             if (ast == null) {
                 //no parsing and serialization if read serialized ast
                 val parserMain = new ParserMain(new CParser(smallFM))
@@ -152,8 +170,12 @@ smallFM.exportFM2DNF(smallFM, "SmallFeatureModels.txt")
 
             }
 
+  vsat_clean_env()
+          // [VSAT]: Jeff and Paul: Parsing ends
             if (ast != null) {
 
+              // [VSAT]: Jeff and Paul: Typechecking begins
+  vsat_set_env("TYPE_CHECKING")
                 // some dataflow analyses require typing information
                 val ts = if (opt.typechecksa)
                             new CTypeSystemFrontend(ast, fullFM, opt) with CTypeCache with CDeclUse
@@ -194,6 +216,7 @@ smallFM.exportFM2DNF(smallFM, "SmallFeatureModels.txt")
                     cf.writeCFG(opt.getFile, new ComposedWriter(List(dotwriter, writer)))
                 }
 
+              // [VSAT]: Jeff and Paul: Static Analysis begins
                 if (opt.staticanalyses) {
                     println("#static analysis")
                     val sa = new CIntraAnalysisFrontend(ast, ts.asInstanceOf[CTypeSystemFrontend with CTypeCache with CDeclUse], fullFM)

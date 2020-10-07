@@ -8,6 +8,9 @@ import org.sat4j.minisat.SolverFactory;
 import scala.Predef._
 ;
 import java.io._
+;
+import scala.io.Source
+
 
 /**
  * connection to the SAT4j SAT solver
@@ -89,6 +92,22 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   solver.addAllClauses(featureModel.clauses)
   var uniqueFlagIds: Map[String, Int] = featureModel.variables
 
+
+
+  // [VSAT]: get the vsat query mode environment variable which indicates which
+  // query belongs to parsing, type checking etc.
+  def vsat_get_env(): String = {
+    Source.fromFile("/home/doyougnu/research/TypeChef-BusyboxAnalysis/VSAT_MODE").getLines.mkString
+  }
+
+  def vsat_record_query(the_query: CNF) {
+    val env_name = vsat_get_env()
+    val output = new BufferedWriter(new FileWriter("SAT_problems_" + env_name + ".txt", true))
+    output.write(the_query + "\n")
+    output.close()
+  }
+
+
   /**
    * determines whether
    * (exprCNF AND featureModel) is satisfiable
@@ -126,10 +145,9 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
     val startTime = System.currentTimeMillis();
 
-val output = new BufferedWriter(new FileWriter("SAT_problems.txt", true))
-// print("Writing: " + exprCNF)
-output.write(exprCNF + "\n")
-output.close()
+
+print("THE MODE: " + vsat_get_env())
+vsat_record_query(exprCNF)
 
     if (PROFILING)
       print("<SAT " + countClauses(exprCNF) + " with " + countFlags(exprCNF) + " flags; ")
