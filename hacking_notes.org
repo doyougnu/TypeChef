@@ -77,7 +77,13 @@
 
 **** Questions in order of importance
      - Note taken on [2020-10-07 Wed 00:09] \\
-       We added several methods to the front end class and the solver class. We experienced issues using environment variables and just decided to rely on files instead. The system for recording works like this: we define a file ~VSAT_MODE~ which holds the mode the present query, then we mutate that file using ~vsat_set_env~ to record which mode type chef is in. We then use ~vsat_record_query~ to record the queries to their respective files, that is lexing queries go to ~SAT_problems_LEXING.txt~ and so on.
+       We added several methods to the front end class and the solver class. We
+       experienced issues using environment variables and just decided to rely
+       on files instead. The system for recording works like this: we define a
+       file ~VSAT_MODE~ which holds the mode the present query, then we mutate
+       that file using ~vsat_set_env~ to record which mode type chef is in. We
+       then use ~vsat_record_query~ to record the queries to their respective
+       files, that is lexing queries go to ~SAT_problems_LEXING.txt~ and so on.
 
      - [X] Jeff and Paul, AI: focus on finding which queries are the Parser
            queries, and which are the Type Checking queries
