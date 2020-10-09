@@ -104,6 +104,8 @@ class ParserMain(p: CParser) {
         val ast = mergeResultsIntoSingleAST(ctx, result)
         if (parserOptions.simplifyPresenceConditions) {
             if (FeatureExprFactory.default == FeatureExprFactory.bdd) {
+              // [VSAT]: Paul and Jeff: this is the entry point for bdds
+  print("[VSAT] : FeatureExprFactory.default == FeatureExprFactory.bdd" )
                 return simplifyPresenceConditions(ast, FeatureExprFactory.True)
             } else {
                 print("\"-bdd\" option required to simplify AST presence conditions.\n")

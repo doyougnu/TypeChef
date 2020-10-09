@@ -76,17 +76,30 @@
 *** <2020-10-06 Tue>
 
 **** Questions in order of importance
-     - Note taken on [2020-10-07 Wed 00:09] \\
-       We added several methods to the front end class and the solver class. We
-       experienced issues using environment variables and just decided to rely
-       on files instead. The system for recording works like this: we define a
-       file ~VSAT_MODE~ which holds the mode the present query, then we mutate
-       that file using ~vsat_set_env~ to record which mode type chef is in. We
-       then use ~vsat_record_query~ to record the queries to their respective
-       files, that is lexing queries go to ~SAT_problems_LEXING.txt~ and so on.
+      - Note taken on [2020-10-07 Wed 00:09] \\
+        We added several methods to the front end class and the solver class. We
+        experienced issues using environment variables and just decided to rely
+        on files instead. The system for recording works like this: we define a
+        file ~VSAT_MODE~ which holds the mode the present query, then we mutate
+        that file using ~vsat_set_env~ to record which mode type chef is in. We
+        then use ~vsat_record_query~ to record the queries to their respective
+        files, that is lexing queries go to ~SAT_problems_LEXING.txt~ and so on.
 
-     - [X] Jeff and Paul, AI: focus on finding which queries are the Parser
-           queries, and which are the Type Checking queries
+      - [X] Jeff and Paul, AI: focus on finding which queries are the Parser
+            queries, and which are the Type Checking queries
 
-     - [ ] Jeff and Paul, AI: try to figure out if BDDs are created from PCs and
-           then cached and used in the solving routine.
+      - [X] Jeff and Paul, AI: try to figure out if BDDs are created from PCs and
+            then cached and used in the solving routine.
+
+        - Note taken on [2020-10-08 Thu 23:16] \\
+          We observed no evidence that BDDs were exercised in the busy box
+          analysis, however when running the linux analysis bdds were
+          exercised immediately
+
+        - Note taken on [2020-10-08 Thu 23:26] \\
+          BDDs are only used with "--bdd" flag and they are used to simplify the presences
+          conditions ~[ParserMain.scala, line 105]~. This is deactivated for busy box by
+          default in the ~./analyzeBusybox.sh~ script. BDDs are used by default for Linux, why?
+
+      - [ ] Jeff and Paul, AI: why are BDDs used to simplify the presence
+        conditions only for Linux but not for BusyBox

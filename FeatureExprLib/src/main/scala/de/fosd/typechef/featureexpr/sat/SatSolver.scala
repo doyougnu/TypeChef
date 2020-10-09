@@ -146,7 +146,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
     val startTime = System.currentTimeMillis();
 
 
-print("THE MODE: " + vsat_get_env())
+// print("THE MODE: " + vsat_get_env())
 vsat_record_query(exprCNF)
 
     if (PROFILING)

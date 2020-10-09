@@ -30,6 +30,9 @@ class BDDFeatureModel(val variables: Map[String, Int], val clauses: IVec[IVecInt
      * make the feature model stricter by a formula
      */
     def and(expr: FeatureExpr /*CNF*/) = {
+
+      println("[VSAT]: BDDFeatureExpr ==> and")
+
         new BDDFeatureModel(variables, clauses, lastVarId, CastHelper.asBDDFeatureExpr(extraConstraints and expr), assumedFalse, assumedTrue)
     }
 
@@ -72,6 +75,11 @@ object BDDFeatureModel extends FeatureModelFactory {
      * (proprietary format used previously by LinuxAnalysis tools)
      */
     def createFromCNFFile(file: String) = {
+
+
+      println("[VSAT]: createFromCNFFile")
+
+
         var variables: Map[String, Int] = Map()
         var varIdx = 0
         val clauses = new Vec[IVecInt]()
@@ -104,6 +112,8 @@ object BDDFeatureModel extends FeatureModelFactory {
     def createFromDimacsFile(file: Source, translateNames: String => String, autoAddVariables: Boolean): FeatureModel = {
         val (variables, clauses, maxId) = loadDimacsData(file, translateNames, autoAddVariables)
         val vecclauses = new Vec[IVecInt]()
+
+      println("[VSAT]: BDDFeatureModel => createFromDimacs")
 
         for (clause <- clauses) {
             val vec = new VecInt()

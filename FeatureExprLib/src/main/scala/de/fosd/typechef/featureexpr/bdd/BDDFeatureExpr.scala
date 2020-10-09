@@ -32,10 +32,12 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
     import CastHelper._
 
     def or(that: FeatureExpr): FeatureExpr = {
+      println("[VSAT]: BDDFeatureExpr ==> or")
         if (that == FeatureExprFactory.True) FeatureExprFactory.True
         else FExprBuilder.or(this, asBDDFeatureExpr(that))
     }
     def and(that: FeatureExpr): FeatureExpr = {
+      println("[VSAT]: BDDFeatureExpr ==> and")
         if (that == FeatureExprFactory.True) this
         else if (that == FeatureExprFactory.False) FeatureExprFactory.False
         else FExprBuilder.and(this, asBDDFeatureExpr(that))
@@ -68,6 +70,9 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
     override def equiv(that: FeatureExpr) = FExprBuilder.biimp(this, asBDDFeatureExpr(that))
 
     def getSatisfiableAssignment(featureModel: FeatureModel, interestingFeatures: Set[SingleFeatureExpr], preferDisabledFeatures: Boolean): Option[(List[SingleFeatureExpr], List[SingleFeatureExpr])] = FExprBuilder.synchronized {
+
+      println("[VSAT]: BDDFeatureExpr ==> getSatisfiableAssignment")
+
         val fm = asBDDFeatureModel(featureModel)
         // optimization: if the interestingFeatures-Set is empty and this FeatureExpression is TRUE, we will always return empty sets
         // here we assume that the featureModel is satisfiable (which is checked at FM-instantiation)
@@ -571,4 +576,3 @@ object CastHelper {
             fm.asInstanceOf[BDDFeatureModel]
         }
 }
-
