@@ -103,3 +103,36 @@
 
       - [ ] Jeff and Paul, AI: why are BDDs used to simplify the presence
         conditions only for Linux but not for BusyBox
+
+*** <2020-10-15 Thu>
+
+**** DONE Capturing feature models
+     CLOSED: [2020-10-15 Thu 21:17]
+     - Note taken on [2020-10-15 Thu 21:22] \\
+       I've finished capturing the feature models, this is purely done through
+       the environment variable files we've already been using. We keep one that
+       counts to serve as a ID for feature models, one to capture the mode, and
+       one to capture the path to the right sub-directory for the feature model.
+       We keep a directory ~sat_queries~ which stores the queries for each
+       feature model. When we observe a query without a feature model we store
+       it in ~sat_queries/plain~, queries found with feature models are stored
+       in sub directories which indicate the model they were logged in. For
+       example, ~sat-queries/0~ will store all the queries that were found for
+       the first feature model in separate files indicating their mode. I
+       created a new mode ~FEATURE_MODEL~ to indicate the feature model that
+       that directory belongs to. To track the feature models we use a hash map
+       which associates the feature models to integers which serve as the UUIDs.
+       This allows our hacked version to capture queries properly even if they
+       appear out of order on the solver side
+
+     - Note taken on [2020-10-15 Thu 16:45] \\
+       I (Jeff) found the section of code in the front end that captures the
+       feature models. It looks like Type Chef parses the feature models and
+       serializes them to files to save time, see line 112 in ~Frontend.scala~.
+       The code reuses the satisfiability solver to test if the feature model is
+       satisfiable thus we can reuse our hack-y capturing code but must mark the
+       new environment. Or in other words, we _were_ capturing the feature
+       models but didn't know how to differentiate them from the actual queries.
+
+**** DONE remove hard coded file paths
+     CLOSED: [2020-10-15 Thu 21:29]

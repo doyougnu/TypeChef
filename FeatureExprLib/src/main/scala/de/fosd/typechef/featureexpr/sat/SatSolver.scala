@@ -96,13 +96,18 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
   // [VSAT]: get the vsat query mode environment variable which indicates which
   // query belongs to parsing, type checking etc.
+  def vsat_get_mode(): String = {
+    Source.fromFile("./VSAT_MODE").getLines.mkString
+  }
+
   def vsat_get_env(): String = {
-    Source.fromFile("/home/doyougnu/research/TypeChef-BusyboxAnalysis/VSAT_MODE").getLines.mkString
+    Source.fromFile("./VSAT_ENV").getLines.mkString
   }
 
   def vsat_record_query(the_query: CNF) {
-    val env_name = vsat_get_env()
-    val output = new BufferedWriter(new FileWriter("SAT_problems_" + env_name + ".txt", true))
+    val dir  = vsat_get_env()
+    val mode = vsat_get_mode()
+    val output = new BufferedWriter(new FileWriter(dir + "SAT_problems_" + mode + ".txt", true))
     output.write(the_query + "\n")
     output.close()
   }
@@ -146,7 +151,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
     val startTime = System.currentTimeMillis();
 
 
-// print("THE MODE: " + vsat_get_env())
+// print("THE MODE: " + vsat_get_mode())
 vsat_record_query(exprCNF)
 
     if (PROFILING)
