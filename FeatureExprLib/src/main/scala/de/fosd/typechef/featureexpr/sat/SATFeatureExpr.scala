@@ -145,7 +145,16 @@ sealed abstract class SATFeatureExpr extends FeatureExpr {
             fm.asInstanceOf[SATFeatureModel]
         }
 
-        cacheIsSatisfiable.getOrElseUpdate(f, new SatSolver().isSatisfiable(toCnfEquiSat, f))
+        // [VSAT] Caching: This caches whether this SATFeatureExpr is satisfiable with the given feature model,
+        // i.e., results of SAT(this ^ f). The feature model f might be empty.
+        // Also, everything else related to caching in this file should be of no interest for us as it is either
+        // - caching something when building feature expressions
+        // - or caching something when converting to CNF.
+        // => So this should be the only point of interest in this file for us.
+
+        // cacheIsSatisfiable.getOrElseUpdate(f, // [VSAT] commented this out to disable caching]
+            new SatSolver().isSatisfiable(toCnfEquiSat, f)
+        // ) // [VSAT] commented this out to disable caching]
     }
 
     /**

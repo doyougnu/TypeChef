@@ -20,6 +20,7 @@ import scala.io.Source
 
 
 class SatSolver {
+  // [VSAT] Caching: Hey Jeff look at this. Some caching is disabled by the TypeChef devs.
   /**
    * caching can reuse SAT solver instances, but experience
    * has shown that it can lead to incorrect results,
@@ -63,6 +64,8 @@ class SatSolver {
   private def nfm(fm: SATFeatureModel) = if (fm == null) SATNoFeatureModel else fm
 }
 
+// [VSAT] Caching: As CACHING is disabled in the SatSolver (see Line 23) this should not be used ever.
+// So we do not have to worry about this I guess.
 private object SatSolverCache {
   val cache: WeakHashMap[SATFeatureModel, SatSolverImpl] = new WeakHashMap()
 
