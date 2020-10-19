@@ -213,10 +213,10 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
     val mode = vsat_get_mode()
 
     if (featureModel != SATNoFeatureModel) { // if we have a fm
-      // val fmPath = dir + "FEATURE_MODEL.txt"
-      // val fmOut = new BufferedWriter(new FileWriter(fmPath, false))
-      // fmOut.write(featureModel.toCNF())
-      // fmOut.close()
+       val fmPath = dir + "FEATURE_MODEL.txt"
+       val fmOut = new BufferedWriter(new FileWriter(fmPath, false))
+       fmOut.write(featureModel.decreate())
+       fmOut.close()
     }
 
     val output = new BufferedWriter(new FileWriter(dir + "SAT_problems_" + mode + ".txt", true))

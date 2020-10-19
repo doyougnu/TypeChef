@@ -21,6 +21,35 @@ import scala.io.Source
  * format
  */
 class SATFeatureModel(val variables: Map[String, Int], val clauses: IVec[IVecInt], val lastVarId: Int) extends FeatureModel {
+    def decreate() : SATFeatureExpr = {
+        // We assume that the map "variables" is a bijection.
+        // Everything else would not make sense.
+        // So we can invert it:
+        val intToVar:Map[Int, String] = variables.map(_.swap)
+
+        val vsatNiceClausesBla:List[SATFeatureExpr] = new List[SATFeatureExpr]
+        for (clause <- clauses)
+            // create an array of integers that is exactly the size of the clauses
+            var clauseIndicesArray:Array[Int] = new Array[Int](clause.size())
+            // copy the content of those pesky IVecInt to the Array
+            clause.copyTo(clauseIndicesArray)
+            // convert the array to a list because thats more nice
+            val clauseIndicesList:List[Int] = clauseIndicesArray.toList()
+            // convert each id to the real variable name
+            val clauseVars:List[String] = clauseIndicesList.map(intToVar)
+            // create a literal SATFeatureExpr for each variable
+            // This is totally not side-effect free because the builder creates lots of caching stuff.
+            // I no idea if this does soemthing bad or whatever.
+            // I am so annoyed -.-
+            // FeatureIDE rulez.
+            val clauseExprs:List[SATFeatureExpr] = clauseVars.map(DefinedExternal)
+            // and now convert our list of expressions to an OR statement and add it to our list of clauses
+            vsatNiceClausesBla = vsatNiceClausesBla :+ FExprBuilder.createOr(clauseExprs)
+
+        // finally conjunct everything to get the CNF
+        FExprBuilder.createAnd(vsatNiceClausesBla)
+    }
+
     /**
      * make the feature model stricter by a formula
      */

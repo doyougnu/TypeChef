@@ -332,7 +332,7 @@ abstract class HashCachingFeatureExpr extends SATFeatureExpr {
   * Central builder class, responsible for simplification of expressions during creation
   * and for extensive caching.
   */
-private[sat] object FExprBuilder {
+object FExprBuilder {
 
     private val featureCache: Map[String, WeakReference[DefinedExternal]] = Map()
     private var macroCache: Map[String, WeakReference[DefinedMacro]] = Map()
