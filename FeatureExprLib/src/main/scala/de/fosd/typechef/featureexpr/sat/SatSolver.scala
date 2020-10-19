@@ -157,29 +157,29 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   }
 
 
-  def vsat_make_query_path(id: FeatModelID) : String = {
-    "./sat_queries/" + id + "/"
-  }
+  // def vsat_make_query_path(id: FeatModelID) : String = {
+  //   "./sat_queries/" + id + "/"
+  // }
 
 
-  // check if the feature model is novel, if so then add it to the observed
-  // feature models and increment the UUID counter
-  def vsat_update_with_fm(observed: ObservedFMs, fm: String) : FeatModelID = {
-    if (observed.contains(fm)) { // then we have seen the feature model before
-      observed(fm)               // then get the ID and return it
-    } else {                     // new feature model
-      // update observed feature models
-      val cntr = vsat_get_fm_cntr()
-      observed + (fm -> cntr)
+  // // check if the feature model is novel, if so then add it to the observed
+  // // feature models and increment the UUID counter
+  // def vsat_update_with_fm(observed: ObservedFMs, fm: String) : FeatModelID = {
+  //   if (observed.contains(fm)) { // then we have seen the feature model before
+  //     observed(fm)               // then get the ID and return it
+  //   } else {                     // new feature model
+  //     // update observed feature models
+  //     val cntr = vsat_get_fm_cntr()
+  //     observed + (fm -> cntr)
 
-      // create the sub dir for the queries
-      vsat_initialise_new_dir()
+  //     // create the sub dir for the queries
+  //     vsat_initialise_new_dir()
 
-      // return
-      vsat_increment_fm_cntr()
-      cntr
-    }
-  }
+  //     // return
+  //     vsat_increment_fm_cntr()
+  //     cntr
+  //   }
+  // }
 
 
   // [VSAT]: get the vsat query mode environment variable which indicates which
@@ -197,7 +197,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   }
 
   def getDirFor(featureModel: SATFeatureModel) : String = {
-    path = vsat_make_query_path(
+    val path = vsat_make_query_path(
       if (featureModel == SATNoFeatureModel) {
         "plain"
       } else {
@@ -211,6 +211,14 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   def vsat_record_query(the_query: CNF, featureModel: SATFeatureModel) {
     val dir  = getDirFor(featureModel) // vsat_get_env()
     val mode = vsat_get_mode()
+
+    if (featureModel != SATNoFeatureModel) { // if we have a fm
+      // val fmPath = dir + "FEATURE_MODEL.txt"
+      // val fmOut = new BufferedWriter(new FileWriter(fmPath, false))
+      // fmOut.write(featureModel.toCNF())
+      // fmOut.close()
+    }
+
     val output = new BufferedWriter(new FileWriter(dir + "SAT_problems_" + mode + ".txt", true))
     output.write(the_query + "\n")
     output.close()

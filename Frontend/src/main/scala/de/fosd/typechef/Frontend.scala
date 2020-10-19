@@ -294,7 +294,7 @@ object Frontend extends EnforceTreeHelper {
  // [VSAT]: Jeff: I'm not sure if we need to log small??? these seem to be empty always
  // [VSAT]: Jeff: If you enable the smalls then the odd numbers will be fullFMs fyi
  // (f andThen vsat_make_query_path andThen vsat_set_env)(smallFM.toString)
- (f andThen vsat_make_query_path andThen vsat_set_env)(fullFM.toString)
+ // (f andThen vsat_make_query_path andThen vsat_set_env)(fullFM.toString)
 
         if (!opt.getFilePresenceCondition.isSatisfiable(fullFM)) {
             println("file has contradictory presence condition. existing.") //otherwise this can lead to strange parser errors, because True is satisfiable, but anything else isn't
