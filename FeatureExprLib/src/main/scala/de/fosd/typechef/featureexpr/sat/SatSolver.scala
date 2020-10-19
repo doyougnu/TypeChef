@@ -1,14 +1,16 @@
 package de.fosd.typechef.featureexpr.sat
 
 import org.sat4j.core.VecInt
+
 import collection.mutable.WeakHashMap
-import org.sat4j.specs.{IConstr, ContradictionException}
-;
-import org.sat4j.minisat.SolverFactory;
+import org.sat4j.specs.{ContradictionException, IConstr}
+import org.sat4j.minisat.SolverFactory
+
 import scala.Predef._
-;
 import java.io._
-;
+import java.nio.file.{Files, Paths}
+
+import scala.collection.immutable.HashMap
 import scala.io.Source
 
 
@@ -96,6 +98,89 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   var uniqueFlagIds: Map[String, Int] = featureModel.variables
 
 
+  ////////////////////////// VSAT FM Counter ////////////////////////////////
+  def vsat_get_fm_cntr() : Integer = {
+    val fpath = "./FEAT_MODEL_CNTR"
+    val file = new File(fpath)
+    val file_not_present = !file.exists()
+
+    // then make it
+    if (file_not_present) {
+      val output = new BufferedWriter(new FileWriter(fpath, false))
+      output.write("0") // initialize to 0, this makes me cringe
+      output.close()
+    }
+
+    val src  = Source.fromFile(fpath)
+    val cntr = src.getLines.take(1).toList.head.toInt
+    src.close()
+    cntr
+  }
+
+
+  // does scala have lenses or profunctors?
+  def vsat_on_fm_cntr(f : Integer => Integer) {
+    val i      = vsat_get_fm_cntr()
+    val fPath  = "./FEAT_MODEL_CNTR"
+    val output = new BufferedWriter(new FileWriter(fPath, false))
+    output.write(f(i).toString)
+    output.close()
+  }
+
+
+  def vsat_set_fm_cntr(i: Integer) {
+    vsat_on_fm_cntr((_:Any) => i)
+  }
+
+
+
+  def vsat_increment_fm_cntr() {
+    vsat_on_fm_cntr(_ + 1)
+  }
+
+
+
+  /////////////////////////// VSAT Queries ///////////////////////////////////
+  def vsat_initialise_new_dir() {
+    val fPath = "./sat_queries/"
+    val fm_counter = vsat_get_fm_cntr()
+
+    // create any directories on the path
+    Files.createDirectories(Paths.get(fPath + fm_counter))
+  }
+
+  def vsat_initialise_plain_dir() {
+    val fPath = "./sat_queries/"
+
+    // create any directories on the path
+    Files.createDirectories(Paths.get(fPath + "plain"))
+  }
+
+
+  def vsat_make_query_path(id: FeatModelID) : String = {
+    "./sat_queries/" + id + "/"
+  }
+
+
+  // check if the feature model is novel, if so then add it to the observed
+  // feature models and increment the UUID counter
+  def vsat_update_with_fm(observed: ObservedFMs, fm: String) : FeatModelID = {
+    if (observed.contains(fm)) { // then we have seen the feature model before
+      observed(fm)               // then get the ID and return it
+    } else {                     // new feature model
+      // update observed feature models
+      val cntr = vsat_get_fm_cntr()
+      observed + (fm -> cntr)
+
+      // create the sub dir for the queries
+      vsat_initialise_new_dir()
+
+      // return
+      vsat_increment_fm_cntr()
+      cntr
+    }
+  }
+
 
   // [VSAT]: get the vsat query mode environment variable which indicates which
   // query belongs to parsing, type checking etc.
@@ -103,12 +188,28 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
     Source.fromFile("./VSAT_MODE").getLines.mkString
   }
 
-  def vsat_get_env(): String = {
-    Source.fromFile("./VSAT_ENV").getLines.mkString
+//  def vsat_get_env(): String = {
+//    Source.fromFile("./VSAT_ENV").getLines.mkString
+//  }
+
+  def vsat_make_query_path(id: String) : String = {
+    "./sat_queries/" + id + "/"
   }
 
-  def vsat_record_query(the_query: CNF) {
-    val dir  = vsat_get_env()
+  def getDirFor(featureModel: SATFeatureModel) : String = {
+    path = vsat_make_query_path(
+      if (featureModel == SATNoFeatureModel) {
+        "plain"
+      } else {
+        featureModel.toString
+      }
+    )
+    Files.createDirectories(Paths.get(path))
+    path
+  }
+
+  def vsat_record_query(the_query: CNF, featureModel: SATFeatureModel) {
+    val dir  = getDirFor(featureModel) // vsat_get_env()
     val mode = vsat_get_mode()
     val output = new BufferedWriter(new FileWriter(dir + "SAT_problems_" + mode + ".txt", true))
     output.write(the_query + "\n")
@@ -155,7 +256,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
 
 // print("THE MODE: " + vsat_get_mode())
-vsat_record_query(exprCNF)
+vsat_record_query(exprCNF, featureModel)
 
     if (PROFILING)
       print("<SAT " + countClauses(exprCNF) + " with " + countFlags(exprCNF) + " flags; ")
