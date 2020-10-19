@@ -215,7 +215,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
     if (featureModel != SATNoFeatureModel) { // if we have a fm
        val fmPath = dir + "FEATURE_MODEL.txt"
        val fmOut = new BufferedWriter(new FileWriter(fmPath, false))
-       fmOut.write(featureModel.decreate())
+       fmOut.write(featureModel.decreate().toString())
        fmOut.close()
     }
 
