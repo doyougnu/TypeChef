@@ -27,7 +27,8 @@ class SATFeatureModel(val variables: Map[String, Int], val clauses: IVec[IVecInt
         // We assume that the map "variables" is a bijection.
         // Everything else would not make sense.
         // So we can invert it:
-        val intToVar:Map[Int, String] = variables.map(_.swap)
+        val mutVars:mutable.Map[String,Int] = mutable.Map(variables.toSeq: _*)
+        val intToVar:mutable.Map[Int, String] = mutVars.map(_.swap)
       // val intToVar:Map[Int, String] = (x) => if (variables.contains(x)) { variables.map(_.swap) }
 
         var vsatNiceClausesBla:List[SATFeatureExpr] = List[SATFeatureExpr]()

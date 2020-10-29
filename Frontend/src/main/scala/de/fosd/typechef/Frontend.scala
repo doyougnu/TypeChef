@@ -276,7 +276,7 @@ object Frontend extends EnforceTreeHelper {
 
 
  // have to wrap this in a val because scala can't do ((f .) . g) apparently?
- val f = vsat_update_with_fm(observed,_:String)
+ // val f = vsat_update_with_fm(observed,_:String)
 
  // read left to right, we do:
 
