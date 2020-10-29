@@ -267,7 +267,7 @@ object Frontend extends EnforceTreeHelper {
         stopWatch.start("loadFM")
 
  // println("[VSAT]: Feature Model Stuff!!!!! ")
- vsat_set_mode("FEATURE_MODEL") // [VSAT]: Set env variable to indicate parsing queries
+ // vsat_set_mode("FEATURE_MODEL") // [VSAT]: Set env variable to indicate parsing queries
 
         val smallFM = opt.getSmallFeatureModel().and(opt.getLocalFeatureModel).and(opt.getFilePresenceCondition)
         opt.setSmallFeatureModel(smallFM) //otherwise the lexer does not get the updated feature model with file presence conditions
