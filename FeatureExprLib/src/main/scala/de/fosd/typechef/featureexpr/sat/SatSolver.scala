@@ -196,7 +196,10 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 //  }
 
   def vsat_update_cache_hits(cacheHits:MHashMap[CNF, Integer], the_query:CNF) {
-    cacheHits(the_query) += 1
+    cacheHits.get(the_query) match {
+      case Some(i) => cacheHits.update(the_query, i + 1)
+      case None    => cacheHits.put(the_query, 0)
+    }
   }
 
   def vsat_make_query_path(id: String) : String = {
@@ -205,8 +208,16 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
   def vsat_log_cache_hits(cacheHits:MHashMap[CNF,Integer]) {
     val fmPath = "VSAT_CACHE_HITS.txt"
-    val fmOut = new BufferedWriter(new FileWriter(fmPath,false))
-    fmOut.write(cacheHits.toString())
+    val fmOut = new BufferedWriter(new FileWriter(fmPath,true))
+
+    val records: Seq[String] = cacheHits.toSeq.map {
+      case (key: CNF, i : Integer) => key.toString + "," + i.toString() + "\n"
+    }
+
+    val csv: String               = records.reduceLeft(_ + _)
+
+    fmOut.write(csv)
+    fmOut.close()
   }
 
   def getDirFor(featureModel: SATFeatureModel) : String = {

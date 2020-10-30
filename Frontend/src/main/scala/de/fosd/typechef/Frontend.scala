@@ -22,6 +22,7 @@ object Frontend extends EnforceTreeHelper {
     def main(args: Array[String]) {
       vsat_clean_mode()
       vsat_clean_env()
+      vsat_initialise_cache_file()
         // load options
         val opt = new FrontendOptionsWithConfigFiles()
         try {
@@ -123,6 +124,13 @@ object Frontend extends EnforceTreeHelper {
     vsat_set_mode("NO_MODE")
   }
 
+  def vsat_initialise_cache_file() {
+    val fmPath = "VSAT_CACHE_HITS.txt"
+    val fmOut = new BufferedWriter(new FileWriter(fmPath,false))
+    val headers = "problem,count\n"
+    fmOut.write(headers)
+    fmOut.close()
+  }
 
   ////////////////////////// VSAT FM Counter ////////////////////////////////
   def vsat_get_fm_cntr() : Integer = {
