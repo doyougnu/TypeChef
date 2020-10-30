@@ -36,9 +36,9 @@ class SatSolver {
 
 
   def isSatisfiable(exprCNF: SATFeatureExpr, featureModel: SATFeatureModel = SATNoFeatureModel): Boolean = {
-    output.write("[Debug::SatSolver::isSatisfiable]: Do we have fm? ==> " + (nfm(featureModel) != SATNoFeatureModel) + "\n")
-    output.write("[Debug::SatSolver::isSatisfiable]: Will we have a cache hit? ==> " + (CACHING && (nfm(featureModel) != SATNoFeatureModel)) + "\n")
-    output.flush()
+    // output.write("[Debug::SatSolver::isSatisfiable]: Do we have fm? ==> " + (nfm(featureModel) != SATNoFeatureModel) + "\n")
+    // output.write("[Debug::SatSolver::isSatisfiable]: Will we have a cache hit? ==> " + (CACHING && (nfm(featureModel) != SATNoFeatureModel)) + "\n")
+    // output.flush()
     (if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
       SatSolverCache.get(nfm(featureModel))
     else
