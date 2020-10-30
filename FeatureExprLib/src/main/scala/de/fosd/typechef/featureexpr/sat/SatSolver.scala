@@ -11,6 +11,7 @@ import java.io._
 import java.nio.file.{Files, Paths}
 
 import scala.collection.immutable.HashMap
+import scala.collection.mutable.{HashMap => MHashMap}
 import scala.io.Source
 
 
@@ -87,6 +88,8 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   type Flag = DefinedExpr
 
   val PROFILING = false
+
+  val cacheHitTracker: MHashMap[CNF, Integer] = new MHashMap() //.withDefaultValue(0)
 
   /**init / constructor */
   val solver = SolverFactory.newDefault();
@@ -192,8 +195,18 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 //    Source.fromFile("./VSAT_ENV").getLines.mkString
 //  }
 
+  def vsat_update_cache_hits(cacheHits:MHashMap[CNF, Integer], the_query:CNF) {
+    cacheHits(the_query) += 1
+  }
+
   def vsat_make_query_path(id: String) : String = {
     "./sat_queries/" + id + "/"
+  }
+
+  def vsat_log_cache_hits(cacheHits:MHashMap[CNF,Integer]) {
+    val fmPath = "VSAT_CACHE_HITS.txt"
+    val fmOut = new BufferedWriter(new FileWriter(fmPath,false))
+    fmOut.write(cacheHits.toString())
   }
 
   def getDirFor(featureModel: SATFeatureModel) : String = {
@@ -208,7 +221,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
     path
   }
 
-  def vsat_record_query(the_query: CNF, featureModel: SATFeatureModel) {
+  def vsat_record_query(cacheHits:MHashMap[CNF,Integer], the_query: CNF, featureModel: SATFeatureModel) {
     val dir  = getDirFor(featureModel) // vsat_get_env()
     val mode = vsat_get_mode()
 
@@ -218,6 +231,9 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
        fmOut.write(featureModel.decreate().toString())
        fmOut.close()
     }
+
+    vsat_update_cache_hits(cacheHits, the_query)
+    vsat_log_cache_hits(cacheHits)
 
     val output = new BufferedWriter(new FileWriter(dir + "SAT_problems_" + mode + ".txt", true))
     output.write(the_query + "\n")
@@ -264,7 +280,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
 
 // print("THE MODE: " + vsat_get_mode())
-vsat_record_query(exprCNF, featureModel)
+vsat_record_query(cacheHitTracker, exprCNF, featureModel)
 
     if (PROFILING)
       print("<SAT " + countClauses(exprCNF) + " with " + countFlags(exprCNF) + " flags; ")

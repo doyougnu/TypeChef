@@ -152,9 +152,9 @@ sealed abstract class SATFeatureExpr extends FeatureExpr {
         // - or caching something when converting to CNF.
         // => So this should be the only point of interest in this file for us.
 
-        // cacheIsSatisfiable.getOrElseUpdate(f, // [VSAT] commented this out to disable caching]
+        cacheIsSatisfiable.getOrElseUpdate(f, // [VSAT] commented this out to disable caching]
             new SatSolver().isSatisfiable(toCnfEquiSat, f)
-        // ) // [VSAT] commented this out to disable caching]
+        ) // [VSAT] commented this out to disable caching]
     }
 
     /**
