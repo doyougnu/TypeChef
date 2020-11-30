@@ -235,6 +235,8 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
   def vsat_record_query(cacheHits:MHashMap[CNF,Integer], the_query: CNF, featureModel: SATFeatureModel) {
     // [VSATDB] This is where queries are recorded.
+    VSATDatabase.query_test()
+
     // We have to alter this such that the queries get stored in a database.
     val dir  = getDirFor(featureModel) // vsat_get_env()
     val mode = vsat_get_mode()
@@ -415,7 +417,6 @@ private object SatSolver {
   type OrClause = SATFeatureExpr
   type Literal = SATFeatureExpr
   type Flag = DefinedExpr
-
 
   def countClauses(expr: CNF) = CNFHelper.getCNFClauses(expr).size
 
