@@ -39,6 +39,7 @@ class SatSolver {
     // output.write("[Debug::SatSolver::isSatisfiable]: Do we have fm? ==> " + (nfm(featureModel) != SATNoFeatureModel) + "\n")
     // output.write("[Debug::SatSolver::isSatisfiable]: Will we have a cache hit? ==> " + (CACHING && (nfm(featureModel) != SATNoFeatureModel)) + "\n")
     // output.flush()
+    // [VSAT] Here is some caching done again but it is disabled in typechef by default because of line 32.
     (if (CACHING && (nfm(featureModel) != SATNoFeatureModel))
       SatSolverCache.get(nfm(featureModel))
     else
@@ -233,6 +234,8 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   }
 
   def vsat_record_query(cacheHits:MHashMap[CNF,Integer], the_query: CNF, featureModel: SATFeatureModel) {
+    // [VSATDB] This is where queries are recorded.
+    // We have to alter this such that the queries get stored in a database.
     val dir  = getDirFor(featureModel) // vsat_get_env()
     val mode = vsat_get_mode()
 
@@ -243,6 +246,11 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
        fmOut.close()
     }
 
+    // @Jeff: Did this work? It seems to me as if this won't work because this method is invoked _after_
+    // SATFeatureExpr.isSatisfiable(fm:FeatureModel) in which caching is implemented.
+    // In that method, the result of the inner solver.isSatisfiable call is cached so isSatisfiable is never invoked twice on the same
+    // query with the same feature model.
+    // Thus, the vsat_record_query is never invoked twice.
     vsat_update_cache_hits(cacheHits, the_query)
     vsat_log_cache_hits(cacheHits)
 

@@ -113,12 +113,12 @@ object Frontend extends EnforceTreeHelper {
 
   ////////////////////////// VSAT Mode //////////////////////////////////////
   def vsat_set_mode(mode: String){
+//      println("[VSAT] Set mode to " + mode)
     val mode_file_name = "./VSAT_MODE"
     val output         = new BufferedWriter(new FileWriter(mode_file_name, false))
     output.write(mode)
     output.close()
   }
-
 
   def vsat_clean_mode(){
     vsat_set_mode("NO_MODE")
@@ -151,7 +151,6 @@ object Frontend extends EnforceTreeHelper {
     cntr
   }
 
-
   // does scala have lenses or profunctors?
   def vsat_on_fm_cntr(f : Integer => Integer) {
     val i      = vsat_get_fm_cntr()
@@ -161,17 +160,13 @@ object Frontend extends EnforceTreeHelper {
     output.close()
   }
 
-
   def vsat_set_fm_cntr(i: Integer) {
     vsat_on_fm_cntr((_:Any) => i)
   }
 
-
-
   def vsat_increment_fm_cntr() {
     vsat_on_fm_cntr(_ + 1)
   }
-
 
   ////////////////////////// VSAT Environment ////////////////////////////////
   // the feature models that have been observed thus far
@@ -195,11 +190,9 @@ object Frontend extends EnforceTreeHelper {
     Files.createDirectories(Paths.get(fPath + "plain"))
   }
 
-
   def vsat_make_query_path(id: FeatModelID) : String = {
     "./sat_queries/" + id + "/"
   }
-
 
   // check if the feature model is novel, if so then add it to the observed
   // feature models and increment the UUID counter
@@ -219,7 +212,6 @@ object Frontend extends EnforceTreeHelper {
       cntr
     }
   }
-
 
   def vsat_get_env() : String = {
     val fpath = "./VSAT_ENV"
@@ -244,7 +236,6 @@ object Frontend extends EnforceTreeHelper {
     output.close()
   }
 
-
   // set the VSAT_ENV file variable, this variable holds the appropriate path to
   // dispatch sat queries for a particular feature model
   def vsat_set_env(new_env: String) {
@@ -252,12 +243,10 @@ object Frontend extends EnforceTreeHelper {
     vsat_on_env((_:Any) => new_env)
   }
 
-
   def vsat_clean_env(){
     vsat_set_env("sat_queries/plain/")
     vsat_initialise_plain_dir
   }
-
 
 ///////////////////////////// End Helpers //////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
