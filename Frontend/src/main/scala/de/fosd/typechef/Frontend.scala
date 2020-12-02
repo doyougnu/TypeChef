@@ -22,7 +22,7 @@ object Frontend extends EnforceTreeHelper {
     def main(args: Array[String]) {
       vsat_clean_mode()
       vsat_clean_env()
-      vsat_initialise_cache_file()
+      //vsat_initialise_cache_file()
         // load options
         val opt = new FrontendOptionsWithConfigFiles()
         try {
@@ -176,7 +176,7 @@ object Frontend extends EnforceTreeHelper {
 
   /////////////////////////// VSAT Queries ///////////////////////////////////
   def vsat_initialise_new_dir() {
-    val fPath = "./sat_queries/"
+    val fPath = "./VSAT_sat_queries/"
     val fm_counter = vsat_get_fm_cntr()
 
     // create any directories on the path
@@ -184,14 +184,14 @@ object Frontend extends EnforceTreeHelper {
   }
 
   def vsat_initialise_plain_dir() {
-    val fPath = "./sat_queries/"
+    val fPath = "./VSAT_sat_queries/"
 
     // create any directories on the path
     Files.createDirectories(Paths.get(fPath + "plain"))
   }
 
   def vsat_make_query_path(id: FeatModelID) : String = {
-    "./sat_queries/" + id + "/"
+    "./VSAT_sat_queries/" + id + "/"
   }
 
   // check if the feature model is novel, if so then add it to the observed
@@ -244,7 +244,7 @@ object Frontend extends EnforceTreeHelper {
   }
 
   def vsat_clean_env(){
-    vsat_set_env("sat_queries/plain/")
+    vsat_set_env("VSAT_sat_queries/plain/")
     vsat_initialise_plain_dir
   }
 

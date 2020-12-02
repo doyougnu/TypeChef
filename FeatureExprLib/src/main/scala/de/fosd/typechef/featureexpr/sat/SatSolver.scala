@@ -90,7 +90,6 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
   val PROFILING = false
 
-  val cacheHitTracker: MHashMap[CNF, Integer] = new MHashMap() //.withDefaultValue(0)
 
   /**init / constructor */
   val solver = SolverFactory.newDefault();
@@ -100,166 +99,6 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
   assert(featureModel != null)
   solver.addAllClauses(featureModel.clauses)
   var uniqueFlagIds: Map[String, Int] = featureModel.variables
-
-
-  ////////////////////////// VSAT FM Counter ////////////////////////////////
-  def vsat_get_fm_cntr() : Integer = {
-    val fpath = "./FEAT_MODEL_CNTR"
-    val file = new File(fpath)
-    val file_not_present = !file.exists()
-
-    // then make it
-    if (file_not_present) {
-      val output = new BufferedWriter(new FileWriter(fpath, false))
-      output.write("0") // initialize to 0, this makes me cringe
-      output.close()
-    }
-
-    val src  = Source.fromFile(fpath)
-    val cntr = src.getLines.take(1).toList.head.toInt
-    src.close()
-    cntr
-  }
-
-
-  // does scala have lenses or profunctors?
-  def vsat_on_fm_cntr(f : Integer => Integer) {
-    val i      = vsat_get_fm_cntr()
-    val fPath  = "./FEAT_MODEL_CNTR"
-    val output = new BufferedWriter(new FileWriter(fPath, false))
-    output.write(f(i).toString)
-    output.close()
-  }
-
-
-  def vsat_set_fm_cntr(i: Integer) {
-    vsat_on_fm_cntr((_:Any) => i)
-  }
-
-
-
-  def vsat_increment_fm_cntr() {
-    vsat_on_fm_cntr(_ + 1)
-  }
-
-
-
-  /////////////////////////// VSAT Queries ///////////////////////////////////
-  def vsat_initialise_new_dir() {
-    val fPath = "./sat_queries/"
-    val fm_counter = vsat_get_fm_cntr()
-
-    // create any directories on the path
-    Files.createDirectories(Paths.get(fPath + fm_counter))
-  }
-
-  def vsat_initialise_plain_dir() {
-    val fPath = "./sat_queries/"
-
-    // create any directories on the path
-    Files.createDirectories(Paths.get(fPath + "plain"))
-  }
-
-
-  // def vsat_make_query_path(id: FeatModelID) : String = {
-  //   "./sat_queries/" + id + "/"
-  // }
-
-
-  // // check if the feature model is novel, if so then add it to the observed
-  // // feature models and increment the UUID counter
-  // def vsat_update_with_fm(observed: ObservedFMs, fm: String) : FeatModelID = {
-  //   if (observed.contains(fm)) { // then we have seen the feature model before
-  //     observed(fm)               // then get the ID and return it
-  //   } else {                     // new feature model
-  //     // update observed feature models
-  //     val cntr = vsat_get_fm_cntr()
-  //     observed + (fm -> cntr)
-
-  //     // create the sub dir for the queries
-  //     vsat_initialise_new_dir()
-
-  //     // return
-  //     vsat_increment_fm_cntr()
-  //     cntr
-  //   }
-  // }
-
-
-  // [VSAT]: get the vsat query mode environment variable which indicates which
-  // query belongs to parsing, type checking etc.
-  def vsat_get_mode(): String = {
-    Source.fromFile("./VSAT_MODE").getLines.mkString
-  }
-
-//  def vsat_get_env(): String = {
-//    Source.fromFile("./VSAT_ENV").getLines.mkString
-//  }
-
-  def vsat_update_cache_hits(cacheHits:MHashMap[CNF, Integer], the_query:CNF) {
-    cacheHits.get(the_query) match {
-      case Some(i) => cacheHits.update(the_query, i + 1)
-      case None    => cacheHits.put(the_query, 0)
-    }
-  }
-
-  def vsat_make_query_path(id: String) : String = {
-    "./sat_queries/" + id + "/"
-  }
-
-  def vsat_log_cache_hits(cacheHits:MHashMap[CNF,Integer]) {
-    val fmPath = "VSAT_CACHE_HITS.txt"
-    val fmOut = new BufferedWriter(new FileWriter(fmPath,true))
-
-    val records: Seq[String] = cacheHits.toSeq.map {
-      case (key: CNF, i : Integer) => key.toString + "," + i.toString() + "\n"
-    }
-
-    val csv: String               = records.reduceLeft(_ + _)
-
-    fmOut.write(csv)
-    fmOut.close()
-  }
-
-  def getDirFor(featureModel: SATFeatureModel) : String = {
-    val path = vsat_make_query_path(
-      if (featureModel == SATNoFeatureModel) {
-        "plain"
-      } else {
-        featureModel.toString
-      }
-    )
-    Files.createDirectories(Paths.get(path))
-    path
-  }
-
-  def vsat_record_query(cacheHits:MHashMap[CNF,Integer], the_query: CNF, featureModel: SATFeatureModel) {
-    // [VSATDB] This is where queries are recorded.
-    VSATDatabase.query_test()
-
-    // We have to alter this such that the queries get stored in a database.
-    val dir  = getDirFor(featureModel) // vsat_get_env()
-    val mode = vsat_get_mode()
-
-    if (featureModel != SATNoFeatureModel) { // if we have a fm
-       val fmPath = dir + "FEATURE_MODEL.txt"
-       val fmOut = new BufferedWriter(new FileWriter(fmPath, false))
-       fmOut.write(featureModel.decreate().toString())
-       fmOut.close()
-    }
-
-    // @Jeff: Did this work? It seems to me as if this won't work because this method is invoked _after_
-    // SATFeatureExpr.isSatisfiable(fm:FeatureModel) in which caching is implemented.
-    // In that method, the result of the inner solver.isSatisfiable call is cached so isSatisfiable is never invoked twice on the same
-    // query with the same feature model.
-    // Thus, the vsat_record_query is never invoked twice.
-    vsat_update_cache_hits(cacheHits, the_query)
-    vsat_log_cache_hits(cacheHits)
-
-    val output = new BufferedWriter(new FileWriter(dir + "SAT_problems_" + mode + ".txt", true))
-    output.write(the_query + "\n")
-    output.close()
-  }
 
 
   /**
@@ -281,9 +120,14 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
         } else {
           lastModel = trueModel
         }
+
+        VSATTextBasedLogger.record_query(exprCNF, featureModel, false);
         return true
       }
-      if (exprCNF == False) return false
+      if (exprCNF == False) {
+        VSATTextBasedLogger.record_query(exprCNF, featureModel, false);
+        return false
+      }
     }
     //as long as we do not consider feature models, expressions with a single variable
     //are always satisfiable
@@ -294,14 +138,14 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
         case Not(x: DefinedExternal) => lastModel = (List(), List(x.satName))
         case _ => sys.error("This really should not be possible")
       }
+      VSATTextBasedLogger.record_query(exprCNF, featureModel, false);
       return true
     }
 
     val startTime = System.currentTimeMillis();
 
-
 // print("THE MODE: " + vsat_get_mode())
-vsat_record_query(cacheHitTracker, exprCNF, featureModel)
+    VSATTextBasedLogger.record_query(exprCNF, featureModel, true);
 
     if (PROFILING)
       print("<SAT " + countClauses(exprCNF) + " with " + countFlags(exprCNF) + " flags; ")
