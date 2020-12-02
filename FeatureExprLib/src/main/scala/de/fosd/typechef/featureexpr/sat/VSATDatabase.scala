@@ -39,14 +39,29 @@ object VSATDatabase {
             return false
         }
 
-        db = Database.forURL(
-            //"jdbc:h2:C:/Users/Paul Bittner/Documents/Software/VSAT/typechefqueries;DB_CLOSE_DELAY=-1",
-            "http://sa:vsat@192.168.1.227:8082",
-            driver="org.h2.Driver")
+        try {
+            db = Database.forURL(
+                //"jdbc:h2:C:/Users/Paul Bittner/Documents/Software/VSAT/typechefqueries;DB_CLOSE_DELAY=-1",
+                //"http://sa:vsat@192.168.1.227:8082",
+                "thisTestURLCannotWork",
+                driver = "org.h2.Driver");
 
-        println("[Database.init] Database connection established")
-        running = true
-        true
+            if (db != null) {
+                println("[Database.init] Database connection established");
+                running = true;
+            } else {
+                running = false;
+                println("[Database.init] Database connection failed due to a yet unknown reason.");
+            }
+        } catch {
+            case e: Exception => {
+                println("[Database.init] Database connection failed. Reason:");
+                println(e);
+                running = false;
+            }
+        }
+
+        running
     }
 
     def terminate() : Boolean = {
