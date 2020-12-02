@@ -152,7 +152,7 @@ object VSATTextBasedLogger {
      * memory.
      * Instead, on a postprocessing step, we could merge Cache_hits.txt with SAT_problems.txt.
      */
-    private def cache_hit_memoryfriendly(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit {
+    private def cache_hit_memoryfriendly(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit = {
         val mode = get_mode()
         val dir  = getDirFor(featureModel)
         val output = new BufferedWriter(new FileWriter(dir + "Cache_hits_" + mode + ".txt", true))
@@ -160,7 +160,7 @@ object VSATTextBasedLogger {
         output.close()
     }
 
-    private def cache_hit_runtimefriendly(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit {
+    private def cache_hit_runtimefriendly(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit = {
 
     }
     
