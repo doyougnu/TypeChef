@@ -2,6 +2,7 @@ package de.fosd.typechef.featureexpr.sat
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Paths}
+import scala.collection.mutable.HashMap
 
 import scala.io.Source
 
@@ -138,9 +139,9 @@ object VSATTextBasedLogger {
          */
 
         // red pill
-        cache_hit_memoryfriendly(the_query, featureModel);
+        //cache_hit_memoryfriendly(the_query, featureModel);
         //blue pill
-        //cache_hit_runtimefriendly(the_query, featureModel);
+        cache_hit_runtimefriendly(the_query, featureModel);
     }
 
     /**
@@ -160,8 +161,38 @@ object VSATTextBasedLogger {
         output.close()
     }
 
+    // @Jeff: You used a MHashMap? What's that and what's the difference to HashMap?
+    private var cache_hits : HashMap[SATFeatureModel, HashMap[SATFeatureExpr, Integer]] = new HashMap();
     private def cache_hit_runtimefriendly(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit = {
+        var innerMap : HashMap[SATFeatureExpr, Integer] = cache_hits.getOrElseUpdate(featureModel, new HashMap());
 
+        innerMap.get(the_query) match {
+            case Some(i) => innerMap.update(the_query, i + 1)
+            case None    => innerMap.put(the_query, 1)
+        }
+
+        log_cache_hits_for(featureModel)
+    }
+
+    def log_cache_hits(): Unit = {
+        for ((featureModel, innerMap) <- cache_hits) {
+            log_cache_hits_for(featureModel);
+        }
+    }
+
+    def log_cache_hits_for(featureModel: SATFeatureModel) : Unit = {
+        var innerMap : HashMap[SATFeatureExpr, Integer] = cache_hits.getOrElseUpdate(featureModel, new HashMap());
+        val fmPath = getDirFor(featureModel) + "VSAT_CACHE_HITS.txt";
+        val fmOut = new BufferedWriter(new FileWriter(fmPath,false));
+
+        val records: Seq[String] = innerMap.toSeq.map {
+            case (key: SATFeatureExpr, i : Integer) => key.toString + "," + i.toString() + "\n"
+        }
+
+        val csv: String = records.reduceLeft(_ + _)
+
+        fmOut.write(csv)
+        fmOut.close()
     }
     
     /**
@@ -199,7 +230,7 @@ object VSATTextBasedLogger {
          *     in "SAT_problems_<MODE>.txt", where <MODE> is the current mode of Typechef.
          * 3.) On a cache hit (see method cache_hit), we write the formula on which we got a cache hit to "Cache_hits_<MODE>.txt".
          */
-        val output = new BufferedWriter(new FileWriter(dir + "SAT_problems_" + mode + ".txt", true))
+        val output = new BufferedWriter(new FileWriter(dir + mode + "/" + "SAT_problems.txt", true))
         output.write(the_query + "; " + sentToSat + "\n")
         output.close()
     }
