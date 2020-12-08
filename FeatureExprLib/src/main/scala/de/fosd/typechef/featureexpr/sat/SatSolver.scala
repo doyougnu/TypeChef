@@ -122,10 +122,12 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
         }
 
         VSATTextBasedLogger.record_query(exprCNF, featureModel, false);
+        VSATDatabase.record_query(exprCNF, featureModel, false);
         return true
       }
       if (exprCNF == False) {
         VSATTextBasedLogger.record_query(exprCNF, featureModel, false);
+        VSATDatabase.record_query(exprCNF, featureModel, false);
         return false
       }
     }
@@ -139,6 +141,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
         case _ => sys.error("This really should not be possible")
       }
       VSATTextBasedLogger.record_query(exprCNF, featureModel, false);
+      VSATDatabase.record_query(exprCNF, featureModel, false);
       return true
     }
 
@@ -146,6 +149,7 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
 
 // print("THE MODE: " + vsat_get_mode())
     VSATTextBasedLogger.record_query(exprCNF, featureModel, true);
+    VSATDatabase.record_query(exprCNF, featureModel, true);
 
     if (PROFILING)
       print("<SAT " + countClauses(exprCNF) + " with " + countFlags(exprCNF) + " flags; ")
