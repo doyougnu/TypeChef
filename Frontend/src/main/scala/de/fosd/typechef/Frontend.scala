@@ -17,13 +17,17 @@ import scala.io.Source
 import scala.sys.process.Process
 import scala.collection.immutable.HashMap
 
+import de.fosd.typechef.featureexpr.sat.VSATMode
+import de.fosd.typechef.featureexpr.sat.VSATMissionControl
+
 object Frontend extends EnforceTreeHelper {
 
     def main(args: Array[String]) {
-      vsat_clean_mode()
-      vsat_clean_env()
+        VSATMissionControl.init();
+//      vsat_clean_env()
       //vsat_initialise_cache_file()
         // load options
+        VSATMissionControl.setCurrentMode(VSATMode.ArgParse);
         val opt = new FrontendOptionsWithConfigFiles()
         try {
             try {
@@ -46,8 +50,11 @@ object Frontend extends EnforceTreeHelper {
                 println("use parameter --help for more information.")
                 return
         }
+        VSATMissionControl.cleanCurrentMode();
 
+        VSATMissionControl.setSessionFile(opt.getSerializedASTFilename());
         processFile(opt)
+        VSATMissionControl.terminate();
     }
 
 
@@ -112,141 +119,141 @@ object Frontend extends EnforceTreeHelper {
   // into
 
   ////////////////////////// VSAT Mode //////////////////////////////////////
-  def vsat_set_mode(mode: String){
+//  def vsat_set_mode(mode: String) : Unit = {
 //      println("[VSAT] Set mode to " + mode)
-    val mode_file_name = "./VSAT_MODE"
-    val output         = new BufferedWriter(new FileWriter(mode_file_name, false))
-    output.write(mode)
-    output.close()
-  }
+//    val mode_file_name = "./VSAT_MODE"
+//    val output         = new BufferedWriter(new FileWriter(mode_file_name, false))
+//    output.write(mode)
+//    output.close()
+//  }
 
-  def vsat_clean_mode(){
-    vsat_set_mode("NO_MODE")
-  }
+//  def vsat_clean_mode() : Unit = {
+//    vsat_set_mode("NO_MODE")
+//  }
 
-  def vsat_initialise_cache_file() {
-    val fmPath = "VSAT_CACHE_HITS.txt"
-    val fmOut = new BufferedWriter(new FileWriter(fmPath,false))
-    val headers = "problem,count\n"
-    fmOut.write(headers)
-    fmOut.close()
-  }
+//  def vsat_initialise_cache_file() {
+//    val fmPath = "VSAT_CACHE_HITS.txt"
+//    val fmOut = new BufferedWriter(new FileWriter(fmPath,false))
+//    val headers = "problem,count\n"
+//    fmOut.write(headers)
+//    fmOut.close()
+//  }
 
   ////////////////////////// VSAT FM Counter ////////////////////////////////
-  def vsat_get_fm_cntr() : Integer = {
-    val fpath = "./FEAT_MODEL_CNTR"
-    val file = new File(fpath)
-    val file_not_present = !file.exists()
-
-    // then make it
-    if (file_not_present) {
-      val output = new BufferedWriter(new FileWriter(fpath, false))
-      output.write("0") // initialize to 0, this makes me cringe
-      output.close()
-    }
-
-    val src  = Source.fromFile(fpath)
-    val cntr = src.getLines.take(1).toList.head.toInt
-    src.close()
-    cntr
-  }
-
-  // does scala have lenses or profunctors?
-  def vsat_on_fm_cntr(f : Integer => Integer) {
-    val i      = vsat_get_fm_cntr()
-    val fPath  = "./FEAT_MODEL_CNTR"
-    val output = new BufferedWriter(new FileWriter(fPath, false))
-    output.write(f(i).toString)
-    output.close()
-  }
-
-  def vsat_set_fm_cntr(i: Integer) {
-    vsat_on_fm_cntr((_:Any) => i)
-  }
-
-  def vsat_increment_fm_cntr() {
-    vsat_on_fm_cntr(_ + 1)
-  }
-
-  ////////////////////////// VSAT Environment ////////////////////////////////
-  // the feature models that have been observed thus far
-  type ObservedFMs = HashMap[String, Integer]
-  type FeatModelID      = Integer
+//  def vsat_get_fm_cntr() : Integer = {
+//    val fpath = "./FEAT_MODEL_CNTR"
+//    val file = new File(fpath)
+//    val file_not_present = !file.exists()
+//
+//    // then make it
+//    if (file_not_present) {
+//      val output = new BufferedWriter(new FileWriter(fpath, false))
+//      output.write("0") // initialize to 0, this makes me cringe
+//      output.close()
+//    }
+//
+//    val src  = Source.fromFile(fpath)
+//    val cntr = src.getLines.take(1).toList.head.toInt
+//    src.close()
+//    cntr
+//  }
+//
+//  // does scala have lenses or profunctors?
+//  def vsat_on_fm_cntr(f : Integer => Integer) {
+//    val i      = vsat_get_fm_cntr()
+//    val fPath  = "./FEAT_MODEL_CNTR"
+//    val output = new BufferedWriter(new FileWriter(fPath, false))
+//    output.write(f(i).toString)
+//    output.close()
+//  }
+//
+//  def vsat_set_fm_cntr(i: Integer) {
+//    vsat_on_fm_cntr((_:Any) => i)
+//  }
+//
+//  def vsat_increment_fm_cntr() {
+//    vsat_on_fm_cntr(_ + 1)
+//  }
+//
+//  ////////////////////////// VSAT Environment ////////////////////////////////
+//  // the feature models that have been observed thus far
+//  type ObservedFMs = HashMap[String, Integer]
+//  type FeatModelID      = Integer
 
 
   /////////////////////////// VSAT Queries ///////////////////////////////////
-  def vsat_initialise_new_dir() {
-    val fPath = "./VSAT_sat_queries/"
-    val fm_counter = vsat_get_fm_cntr()
+//  def vsat_initialise_new_dir() {
+//    val fPath = "./VSAT_sat_queries/"
+//    val fm_counter = vsat_get_fm_cntr()
+//
+//    // create any directories on the path
+//    Files.createDirectories(Paths.get(fPath + fm_counter))
+//  }
 
-    // create any directories on the path
-    Files.createDirectories(Paths.get(fPath + fm_counter))
-  }
+//  def vsat_initialise_plain_dir() {
+//    val fPath = "./VSAT_sat_queries/"
+//
+//    // create any directories on the path
+//    Files.createDirectories(Paths.get(fPath + "plain"))
+//  }
 
-  def vsat_initialise_plain_dir() {
-    val fPath = "./VSAT_sat_queries/"
-
-    // create any directories on the path
-    Files.createDirectories(Paths.get(fPath + "plain"))
-  }
-
-  def vsat_make_query_path(id: FeatModelID) : String = {
-    "./VSAT_sat_queries/" + id + "/"
-  }
+//  def vsat_make_query_path(id: FeatModelID) : String = {
+//    "./VSAT_sat_queries/" + id + "/"
+//  }
 
   // check if the feature model is novel, if so then add it to the observed
   // feature models and increment the UUID counter
-  def vsat_update_with_fm(observed: ObservedFMs, fm: String) : FeatModelID = {
-    if (observed.contains(fm)) { // then we have seen the feature model before
-      observed(fm)               // then get the ID and return it
-    } else {                     // new feature model
-      // update observed feature models
-      val cntr = vsat_get_fm_cntr()
-      observed + (fm -> cntr)
+//  def vsat_update_with_fm(observed: ObservedFMs, fm: String) : FeatModelID = {
+//    if (observed.contains(fm)) { // then we have seen the feature model before
+//      observed(fm)               // then get the ID and return it
+//    } else {                     // new feature model
+//      // update observed feature models
+//      val cntr = vsat_get_fm_cntr()
+//      observed + (fm -> cntr)
+//
+//      // create the sub dir for the queries
+//      vsat_initialise_new_dir()
+//
+//      // return
+//      vsat_increment_fm_cntr()
+//      cntr
+//    }
+//  }
 
-      // create the sub dir for the queries
-      vsat_initialise_new_dir()
+//  def vsat_get_env() : String = {
+//    val fpath = "./VSAT_ENV"
+//    val file_not_present = !(Files.isRegularFile(Paths.get(fpath)))
+//    val go = () => Source.fromFile(fpath).getLines.mkString
+//
+//    // make the file if it doesn't exist
+//    if (file_not_present) {
+//      val file = new File(fpath)
+//      file.createNewFile()
+//    }
+//
+//    // let's go, one wonders what continuation passing style in scala is like
+//    go()
+//  }
 
-      // return
-      vsat_increment_fm_cntr()
-      cntr
-    }
-  }
-
-  def vsat_get_env() : String = {
-    val fpath = "./VSAT_ENV"
-    val file_not_present = !(Files.isRegularFile(Paths.get(fpath)))
-    val go = () => Source.fromFile(fpath).getLines.mkString
-
-    // make the file if it doesn't exist
-    if (file_not_present) {
-      val file = new File(fpath)
-      file.createNewFile()
-    }
-
-    // let's go, one wonders what continuation passing style in scala is like
-    go()
-  }
-
-  def vsat_on_env(f : String => String) {
-    val e      = vsat_get_env()
-    val fPath  = "./VSAT_ENV"
-    val output = new BufferedWriter(new FileWriter(fPath, false))
-    output.write(f(e))
-    output.close()
-  }
+//  def vsat_on_env(f : String => String) {
+//    val e      = vsat_get_env()
+//    val fPath  = "./VSAT_ENV"
+//    val output = new BufferedWriter(new FileWriter(fPath, false))
+//    output.write(f(e))
+//    output.close()
+//  }
 
   // set the VSAT_ENV file variable, this variable holds the appropriate path to
   // dispatch sat queries for a particular feature model
-  def vsat_set_env(new_env: String) {
-    val env_fname = "./VSAT_ENV"
-    vsat_on_env((_:Any) => new_env)
-  }
+//  def vsat_set_env(new_env: String) {
+//    val env_fname = "./VSAT_ENV"
+//    vsat_on_env((_:Any) => new_env)
+//  }
 
-  def vsat_clean_env(){
-    vsat_set_env("VSAT_sat_queries/plain/")
-    vsat_initialise_plain_dir
-  }
+//  def vsat_clean_env(){
+//    vsat_set_env("VSAT_sat_queries/plain/")
+//    vsat_initialise_plain_dir
+//  }
 
 ///////////////////////////// End Helpers //////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -255,7 +262,7 @@ object Frontend extends EnforceTreeHelper {
 
         // [VSAT]: Added to track feature models and dispatch feature models to
         // the queries there associated sat queries
-        val observed = new ObservedFMs()
+//        val observed = new ObservedFMs()
 
         val errorXML = new ErrorXML(opt.getErrorXMLFile)
         opt.setRenderParserError(errorXML.renderParserError)
@@ -317,18 +324,21 @@ object Frontend extends EnforceTreeHelper {
 
 
         stopWatch.start("lexing")
-  vsat_set_mode("LEXING")
+//  vsat_set_mode("LEXING")
+        VSATMissionControl.setCurrentMode(VSATMode.Lexing);
         //no parsing if read serialized ast
         val in = if (ast == null) {
             println("#lexing")
             lex(opt)
         } else null
 
-  vsat_clean_mode()
+//        vsat_clean_mode()
+        VSATMissionControl.cleanCurrentMode();
 
         if (opt.parse) {
             println("#parsing")
-  vsat_set_mode("PARSING") // [VSAT]: Set env variable to indicate parsing queries
+//  vsat_set_mode("PARSING") // [VSAT]: Set env variable to indicate parsing queries
+            VSATMissionControl.setCurrentMode(VSATMode.Parsing);
             stopWatch.start("parsing")
 
           // [VSAT]: Jeff and Paul: Parsing begins after lexing of course. Here
@@ -348,12 +358,14 @@ object Frontend extends EnforceTreeHelper {
 
             }
 
-  vsat_clean_mode()
+//  vsat_clean_mode()
+            VSATMissionControl.cleanCurrentMode();
           // [VSAT]: Jeff and Paul: Parsing ends
             if (ast != null) {
 
               // [VSAT]: Jeff and Paul: Typechecking begins
-  vsat_set_mode("TYPE_CHECKING")
+//  vsat_set_mode("TYPE_CHECKING")
+                VSATMissionControl.setCurrentMode(VSATMode.TypeChecking);
                 // some dataflow analyses require typing information
                 val ts = if (opt.typechecksa)
                             new CTypeSystemFrontend(ast, fullFM, opt) with CTypeCache with CDeclUse

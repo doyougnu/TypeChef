@@ -36,6 +36,7 @@ object VSATDatabase {
     var db : Database = null;
 
     def init() : Boolean = {
+        println("[VSATDatabase.init]");
         if (running) {
             println("[Database.init] Database connection is already established.")
             return false
@@ -60,7 +61,7 @@ object VSATDatabase {
                 user = "sa",
                 password = "vsat",
                 //"thisTestURLCannotWork",
-                driver = "org.h2.Driver",
+                driver = "org.h2.Driver"
 //                connectionPool = "disabled"
 //              driver = "scala.slick.driver.H2Driver"
             );
@@ -84,9 +85,9 @@ object VSATDatabase {
     }
 
     def terminate() : Boolean = {
-//        println("[Database.init] Database connection terminated")
 //        db.close();
-//        running = false
+        println("[Database.terminate] Database connection terminated")
+        running = false
         running
     }
 
@@ -108,17 +109,11 @@ object VSATDatabase {
 
     def cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit = {
         //println("[Database.cache_hit]")
-        if (!running) {
-            init();
-        }
         spawnAgentSmith();
     }
 
     def record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean): Unit = {
         //println("[Database.query_test]")
-        if (!running) {
-            init();
-        }
         spawnAgentSmith();
     }
 }

@@ -1,121 +1,52 @@
 package de.fosd.typechef.featureexpr.sat
 
+import com.sun.xml.internal.ws.developer.StreamingAttachmentFeature
+
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.{Files, Paths}
 import scala.collection.mutable.HashMap
-
 import scala.io.Source
 
 object VSATTextBasedLogger {
-//    val cacheHitTracker: MHashMap[CNF, Integer] = new MHashMap() //.withDefaultValue(0)
-//
-//    ////////////////////////// VSAT FM Counter ////////////////////////////////
-//    def get_fm_cntr() : Integer = {
-//        val fpath = "./FEAT_MODEL_CNTR"
-//        val file = new File(fpath)
-//        val file_not_present = !file.exists()
-//
-//        // then make it
-//        if (file_not_present) {
-//            val output = new BufferedWriter(new FileWriter(fpath, false))
-//            output.write("0") // initialize to 0, this makes me cringe
-//            output.close()
-//        }
-//
-//        val src  = Source.fromFile(fpath)
-//        val cntr = src.getLines.take(1).toList.head.toInt
-//        src.close()
-//        cntr
-//    }
-//
-//    // does scala have lenses or profunctors?
-//    def on_fm_cntr(f : Integer => Integer) {
-//        val i      = get_fm_cntr()
-//        val fPath  = "./FEAT_MODEL_CNTR"
-//        val output = new BufferedWriter(new FileWriter(fPath, false))
-//        output.write(f(i).toString)
-//        output.close()
-//    }
-//
-//    def set_fm_cntr(i: Integer) {
-//        on_fm_cntr((_:Any) => i)
-//    }
-//
-//    def increment_fm_cntr() {
-//        on_fm_cntr(_ + 1)
-//    }
-//
-//    /////////////////////////// VSAT Queries ///////////////////////////////////
-//    def initialise_new_dir() {
-//        val fPath = "./sat_queries/"
-//        val fm_counter = get_fm_cntr()
-//
-//        // create any directories on the path
-//        Files.createDirectories(Paths.get(fPath + fm_counter))
-//    }
-//
-//    def initialise_plain_dir() {
-//        val fPath = "./sat_queries/"
-//
-//        // create any directories on the path
-//        Files.createDirectories(Paths.get(fPath + "plain"))
-//    }
+    import VSATMode._
 
-    // def make_query_path(id: FeatModelID) : String = {
-    //   "./sat_queries/" + id + "/"
-    // }
+    private val logDir : String = "sat_queries/";
+    private val cacheFileName : String = "VSAT_CACHE_HITS.txt";
+    private val queriesFileName : String = "SAT_PROBLEMS.txt";
+    private val featureModelFileName : String = "FEATURE_MODEL.txt";
+    private var directoryForCurrentIteration : String =
+//        "unknownfile/";
+        "";
 
-    // // check if the feature model is novel, if so then add it to the observed
-    // // feature models and increment the UUID counter
-    // def update_with_fm(observed: ObservedFMs, fm: String) : FeatModelID = {
-    //   if (observed.contains(fm)) { // then we have seen the feature model before
-    //     observed(fm)               // then get the ID and return it
-    //   } else {                     // new feature model
-    //     // update observed feature models
-    //     val cntr = get_fm_cntr()
-    //     observed + (fm -> cntr)
-
-    //     // create the sub dir for the queries
-    //     initialise_new_dir()
-
-    //     // return
-    //     increment_fm_cntr()
-    //     cntr
-    //   }
-    // }
-    
-
-    //  def get_env(): String = {
-    //    Source.fromFile("./VSAT_ENV").getLines.mkString
-    //  }
-    
-    def make_query_path(id: String) : String = {
-        "./VSAT_sat_queries/" + id + "/"
+    def init() : Boolean = {
+        println("[VSATTextBasedLogger.init]");
+        true
     }
 
-    /// The two caching methods are buggy because they do not consider the FM.
-//    def update_cache_hits(the_query:CNF) {
-//        cacheHitTracker.get(the_query) match {
-//            case Some(i) => cacheHits.update(the_query, i + 1)
-//            case None    => cacheHits.put(the_query, 0)
-//        }
-//    }
-//
-//    def log_cache_hits() {
-//        val fmPath = "VSAT_CACHE_HITS.txt"
-//        val fmOut = new BufferedWriter(new FileWriter(fmPath,true))
-//
-//        val records: Seq[String] = cacheHitTracker.toSeq.map {
-//            case (key: CNF, i : Integer) => key.toString + "," + i.toString() + "\n"
-//        }
-//
-//        val csv: String               = records.reduceLeft(_ + _)
-//
-//        fmOut.write(csv)
-//        fmOut.close()
-//    }
+    def setSessionFile(file : String) : Unit = {
+        println("[VSATTextBasedLogger.setSessionFile]");
 
-    def getDirFor(featureModel: SATFeatureModel) : String = {
+//        directoryForCurrentIteration = file + "/";
+
+        // Save a list of all files that where processed by init across TypeChef runs.
+        val runsFile = VSATMissionControl.metadatadir + "runs.txt";
+        val output = new BufferedWriter(new FileWriter(runsFile, true))
+        output.write(file + "\n")
+        output.close()
+    }
+
+    def terminate() : Boolean = {
+        println("[VSATTextBasedLogger.terminate] Writing cache log ...");
+        log_cache_hits();
+        println("[VSATTextBasedLogger.terminate] done");
+        true
+    }
+
+    def make_query_path(id: String) : String = {
+        VSATMissionControl.metadatadir + logDir + directoryForCurrentIteration + id + "/"
+    }
+
+    def getFMDir(featureModel: SATFeatureModel) : String = {
         val path = make_query_path(
             if (featureModel == SATNoFeatureModel) {
                 "plain"
@@ -127,20 +58,24 @@ object VSATTextBasedLogger {
         path
     }
 
-    // [VSAT]: get the vsat query mode environment variable which indicates which
-    // query belongs to parsing, type checking etc.
-    def get_mode(): String = {
-        Source.fromFile("./VSAT_MODE").getLines.mkString
+    def getCurrentQueryDir(featureModel: SATFeatureModel) : String = {
+        getQueryDir(featureModel, VSATMissionControl.getCurrentMode())
+    }
+
+    def getQueryDir(featureModel: SATFeatureModel, mode : VSATMode) : String = {
+        val path = getFMDir(featureModel) + mode + "/";
+        Files.createDirectories(Paths.get(path))
+        path
     }
 
     def cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit = {
         /**
-         * Choose red (memory friendly) or blue pill (runtime friendly).
+         * Choose exactly one of red (memory friendly) or blue pill (runtime friendly).
          */
 
         // red pill
         //cache_hit_memoryfriendly(the_query, featureModel);
-        //blue pill
+        // blue pill
         cache_hit_runtimefriendly(the_query, featureModel);
     }
 
@@ -154,24 +89,31 @@ object VSATTextBasedLogger {
      * Instead, on a postprocessing step, we could merge Cache_hits.txt with SAT_problems.txt.
      */
     private def cache_hit_memoryfriendly(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit = {
-        val mode = get_mode()
-        val dir  = getDirFor(featureModel)
-        val output = new BufferedWriter(new FileWriter(dir + "Cache_hits_" + mode + ".txt", true))
+        val dir = getCurrentQueryDir(featureModel)
+        val output = new BufferedWriter(new FileWriter(dir + cacheFileName, true))
         output.write(the_query + "\n")
         output.close()
     }
 
-    // @Jeff: You used a MHashMap? What's that and what's the difference to HashMap?
-    private var cache_hits : HashMap[SATFeatureModel, HashMap[SATFeatureExpr, Integer]] = new HashMap();
+    private var cache_hits : HashMap[SATFeatureModel, HashMap[VSATMode, HashMap[SATFeatureExpr, Integer]]] = new HashMap();
+
+    private def getCacheOf(featureModel: SATFeatureModel, mode : VSATMode): HashMap[SATFeatureExpr, Integer] = {
+        cache_hits
+            .getOrElseUpdate(featureModel, new HashMap())
+            .getOrElseUpdate(VSATMissionControl.getCurrentMode(), new HashMap())
+    }
+
     private def cache_hit_runtimefriendly(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit = {
-        var innerMap : HashMap[SATFeatureExpr, Integer] = cache_hits.getOrElseUpdate(featureModel, new HashMap());
+        var innerMap : HashMap[SATFeatureExpr, Integer] = getCacheOf(featureModel, VSATMissionControl.getCurrentMode());
 
         innerMap.get(the_query) match {
             case Some(i) => innerMap.update(the_query, i + 1)
             case None    => innerMap.put(the_query, 1)
         }
 
-        log_cache_hits_for(featureModel)
+        // Rewriting the entire hashmap to disk is quite expensive.
+        // So we don't write here but on program end (see terminate).
+        /// log_cache_hits_for(featureModel)
     }
 
     def log_cache_hits(): Unit = {
@@ -181,22 +123,25 @@ object VSATTextBasedLogger {
     }
 
     def log_cache_hits_for(featureModel: SATFeatureModel) : Unit = {
-        val mode = get_mode()
-        var innerMap : HashMap[SATFeatureExpr, Integer] = cache_hits.getOrElseUpdate(featureModel, new HashMap());
-        val dir = getDirFor(featureModel) + mode;
-        val fmPath = dir + "/" + "VSAT_CACHE_HITS.txt";
-        Files.createDirectories(Paths.get(dir))
+        for (mode <- VSATMode.values) {
+            log_cache_hits_for(featureModel, mode);
+        }
+    }
 
-        val fmOut = new BufferedWriter(new FileWriter(fmPath,false));
+    def log_cache_hits_for(featureModel: SATFeatureModel, mode : VSATMode) : Unit = {
+        var innerMap : HashMap[SATFeatureExpr, Integer] = getCacheOf(featureModel, mode);
 
         val records: Seq[String] = innerMap.toSeq.map {
             case (key: SATFeatureExpr, i : Integer) => key.toString + "," + i.toString() + "\n"
         }
 
-        val csv: String = records.reduceLeft(_ + _)
-
-        fmOut.write(csv)
-        fmOut.close()
+        if (records.nonEmpty) {
+            val csv: String = records.reduceLeft(_ + _)
+            val path = getQueryDir(featureModel, mode) + cacheFileName;
+            val fmOut = new BufferedWriter(new FileWriter(path, false));
+            fmOut.write(csv)
+            fmOut.close()
+        }
     }
     
     /**
@@ -210,9 +155,7 @@ object VSATTextBasedLogger {
      */
     def record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean) {
         // [VSATDB] This is where queries are recorded.
-        val mode = get_mode()
-        val dir  = getDirFor(featureModel) // get_env()
-        val fmPath = dir + "FEATURE_MODEL.txt"
+        val fmPath = getFMDir(featureModel) + featureModelFileName
 
         // if we have a fm and didn't write it to disk yet
         if (featureModel != SATNoFeatureModel
@@ -230,13 +173,12 @@ object VSATTextBasedLogger {
          * We achieve this by doing the following.
          * 1.) We create a directory for each FM and group queries on that FM in that directory.
          * 2.) We log all queries (those passed as arguments to this method) and the value of sentToSAT
-         *     in "SAT_problems_<MODE>.txt", where <MODE> is the current mode of Typechef.
-         * 3.) On a cache hit (see method cache_hit), we write the formula on which we got a cache hit to "Cache_hits_<MODE>.txt".
+         *     in "<MODE>/SAT_problems.txt", where <MODE> is the current mode of Typechef.
+         * 3.) On a cache hit (see method cache_hit), we write the formula on which we got a cache hit to "<MODE>/VSAT_CACHE_HITS.txt".
          */
-        val satproblemsdir = dir + mode;
-        Files.createDirectories(Paths.get(satproblemsdir))
-        val output = new BufferedWriter(new FileWriter(satproblemsdir + "/" + "SAT_problems.txt", true))
-        output.write(the_query + "; " + sentToSat + "\n")
+        val problemsPath = getCurrentQueryDir(featureModel) + queriesFileName;
+        val output = new BufferedWriter(new FileWriter(problemsPath, true))
+        output.write(the_query + ", " + sentToSat + "\n")
         output.close()
     }
 }
