@@ -181,8 +181,12 @@ object VSATTextBasedLogger {
     }
 
     def log_cache_hits_for(featureModel: SATFeatureModel) : Unit = {
+        val mode = get_mode()
         var innerMap : HashMap[SATFeatureExpr, Integer] = cache_hits.getOrElseUpdate(featureModel, new HashMap());
-        val fmPath = getDirFor(featureModel) + "VSAT_CACHE_HITS.txt";
+        val dir = getDirFor(featureModel) + mode;
+        val fmPath = dir + "/" + "VSAT_CACHE_HITS.txt";
+        Files.createDirectories(Paths.get(dir))
+
         val fmOut = new BufferedWriter(new FileWriter(fmPath,false));
 
         val records: Seq[String] = innerMap.toSeq.map {
@@ -206,7 +210,6 @@ object VSATTextBasedLogger {
      */
     def record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean) {
         // [VSATDB] This is where queries are recorded.
-        //VSATDatabase.query_test()
         val mode = get_mode()
         val dir  = getDirFor(featureModel) // get_env()
         val fmPath = dir + "FEATURE_MODEL.txt"
@@ -230,7 +233,9 @@ object VSATTextBasedLogger {
          *     in "SAT_problems_<MODE>.txt", where <MODE> is the current mode of Typechef.
          * 3.) On a cache hit (see method cache_hit), we write the formula on which we got a cache hit to "Cache_hits_<MODE>.txt".
          */
-        val output = new BufferedWriter(new FileWriter(dir + mode + "/" + "SAT_problems.txt", true))
+        val satproblemsdir = dir + mode;
+        Files.createDirectories(Paths.get(satproblemsdir))
+        val output = new BufferedWriter(new FileWriter(satproblemsdir + "/" + "SAT_problems.txt", true))
         output.write(the_query + "; " + sentToSat + "\n")
         output.close()
     }
