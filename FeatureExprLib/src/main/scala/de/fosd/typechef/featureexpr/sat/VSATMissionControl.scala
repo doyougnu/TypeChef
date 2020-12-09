@@ -9,8 +9,8 @@ object VSATMissionControl {
     import VSATMode._
 
     /// Configure where to log here.
-    private val withTextBasedLogging : Boolean = true;
-    private val withDatabaseLogging : Boolean = false;
+    private val withTextBasedLogging : Boolean = false;
+    private val withDatabaseLogging : Boolean = true;
     private var currentMode : VSATMode = VSATMode.Unknown;
 
     var metadatadir : String = "./VSAT_metadata/"
