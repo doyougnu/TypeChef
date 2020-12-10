@@ -13,7 +13,14 @@ object VSATMissionControl {
     private val withDatabaseLogging : Boolean = true;
     private var currentMode : VSATMode = VSATMode.Unknown;
 
+    /// Configure debug settings here
+    val DEBUG : Boolean = false;
+
+    /// Do not touch these
     var metadatadir : String = "./VSAT_metadata/"
+    val runIndexFile : String = metadatadir + "runno.txt";
+    val startRunNumber : Int = 1;
+    var runNumber : Int = -1;
 
     /**
      * Invoked once on program startup.
@@ -23,17 +30,16 @@ object VSATMissionControl {
         cleanCurrentMode();
 
         // Increment run index number
+        runNumber = startRunNumber;
         Files.createDirectories(Paths.get(metadatadir));
-        val runIndexFile = metadatadir + "runno.txt";
-        var currentRunIndex : Int = 1;
         if (Files.exists(Paths.get(runIndexFile))) {
-            currentRunIndex = 1 + Source.fromFile(runIndexFile).mkString.toInt;
+            runNumber = 1 + Source.fromFile(runIndexFile).mkString.toInt;
         }
         val output = new BufferedWriter(new FileWriter(runIndexFile, false));
-        output.write("" + currentRunIndex);
+        output.write("" + runNumber);
         output.close();
 
-        metadatadir = metadatadir + currentRunIndex + "/";
+        metadatadir = metadatadir + runNumber + "/";
         Files.createDirectories(Paths.get(metadatadir));
 
         if (withTextBasedLogging) {
@@ -61,6 +67,8 @@ object VSATMissionControl {
             VSATDatabase.terminate();
         }
     }
+
+    def isFirstRun() : Boolean = startRunNumber == runNumber;
 
     /// Get and Set the VSAT_MODE here
 

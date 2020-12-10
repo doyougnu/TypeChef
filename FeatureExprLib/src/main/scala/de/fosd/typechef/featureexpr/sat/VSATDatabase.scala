@@ -16,14 +16,18 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import slick.jdbc.GetResult
 
 object VSATDatabase {
-    val queriesTableName : String = "Queries";
-    val featureModelsTableName : String = "FeatureModels";
-    val noFeatureModel : String = "NoFeatureModel"
+    // Select the database profile in application.conf that you want to use.
+    private val databaseProfileToUse : String = "h2localhostpaul";
 
-    val dbDebug : Boolean = false;
+    // Neither touch these
+    private val queriesTableName : String = "QUERIES";
+    private val featureModelsTableName : String = "FEATUREMODELS";
+    private val noFeatureModel : String = "NoFeatureModel";
+    private val tableLine : String = "----------------------------------------";
 
-    var running : Boolean = false;
-    var db : Database = null;
+    // Nor these
+    private var running : Boolean = false;
+    private var db : Database = null;
 
     /// TODO:
     /// Currently, we often wait for futures to complete.
@@ -41,76 +45,45 @@ object VSATDatabase {
             return false
         }
 
-        db = Database.forConfig("h2mem1")
-
-//        try {
-//            /**
-//             *  :profiles/prod {
-//             *      :env {
-//             *          :database-url "jdbc:postgresql://uqigickuuzalxs:4a983bbd18d1788fc5187d0f24ab6c37b33dabdab444293723dab3601f095ad2@ec2-184-73-196-65.compute-1.amazonaws.com:5432/d2t468ltf9ppbg"
-//             *          :neo4j-db-url "https://app87302872-N2QaDg:b.4rsLGYPKQfiz.w7QaJuQk1c4ocmxv@hobby-cjlamlpgpijggbkenjcimnal.dbs.graphenedb.com:24780"
-//             *      }
-//             *  }
-//             */
-//            db = Database.forURL(
-//                //"jdbc:h2:C:/Users/Paul Bittner/Documents/Software/VSAT/typechefqueries;DB_CLOSE_DELAY=-1",
-//                //"jdbc:h2://sa:vsat@192.168.1.227:8082/typechefqueries",
-//                // jdbc:h2:file:~/sample;USER=sa;PASSWORD=123
-////                "jdbc:h2:/mnt/c/Users/Paul\\ Bittner/Documents/Software/VSAT/typechefqueries",
-////                "jdbc:h2:file:/mnt/c/Users/Paul\\ Bittner/Documents/Software/VSAT;databaseName=typechefqueries;USER=sa;PASSWORD=vsat",
-//                "jdbc:h2:mem:test1",
-//                user = "sa",
-//                password = "vsat",
-//                //"thisTestURLCannotWork",
-//                driver = "org.h2.Driver"
-////                connectionPool = "disabled"
-////              driver = "scala.slick.driver.H2Driver"
-//            );
-//
-//            if (db != null) {
-//                println("[Database.init] Database connection established");
-//                running = true;
-//            } else {
-//                running = false;
-//                println("[Database.init] Database connection failed due to a yet unknown reason.");
-//            }
-//        } catch {
-//            case e: Exception => {
-//                println("[Database.init] Database connection failed. Reason:");
-//                println(e);
-//                running = false;
-//            }
-//        }
-
+        db =
+//            Database.forConfig("h2inmem")
+            Database.forConfig(databaseProfileToUse)
 
         // Creating tables synchronously and crash if something fails.
-        if (!evalForced(tableExists(queriesTableName))) {
-            runSyncForced(createQueriesTable())
+        var queriesTableExists : Boolean = evalForced(tableExists(queriesTableName));
+        if (queriesTableExists && VSATMissionControl.isFirstRun()) {
+            println("[VSATDatabase.init] Cleaning existing table QUERIES because this is the first run.");
+            runSyncForced(dropQueriesTable());
+            queriesTableExists = false;
         }
-        if (!evalForced(tableExists(featureModelsTableName))) {
-            runSyncForced(createFeatureModelsTable())
+        if (!queriesTableExists) {
+            println("[VSATDatabase.init] Creating table QUERIES.");
+            runSyncForced(createQueriesTable());
         }
-        // Create tables asynchronously and fail silently. This might be a bad idea.
-        //        tableExists(queriesTableName).foreach(exists => {
-        //            if (!exists) {
-        //                runAsync(createQueriesTable())
-        //            }
-        //        })
-        //
-        //        tableExists(featureModelsTableName).foreach(exists => {
-        //            if (!exists) {
-        //                runAsync(createFeatureModelsTable())
-        //            }
-        //        })
 
-//        runSyncForced(printTableNames());
+        var fmTableExists : Boolean = evalForced(tableExists(featureModelsTableName));
+        if (fmTableExists && VSATMissionControl.isFirstRun()) {
+            println("[VSATDatabase.init] Cleaning existing table FEATUREMODELS because this is the first run.");
+            runSyncForced(dropFeatureModelsTable());
+            fmTableExists = false;
+        }
+        if (!fmTableExists) {
+            println("[VSATDatabase.init] Creating table FEATUREMODELS.");
+            runSyncForced(createFeatureModelsTable());
+        }
+
+        if (VSATMissionControl.DEBUG) {
+            runSyncForced(printTableNames());
+        }
 
         running
     }
 
     def terminate() : Boolean = {
-        runSync(showQueriesTable());
-        runSync(showFeatureModelsTable());
+        if (VSATMissionControl.DEBUG) {
+            runSync(showQueriesTable());
+            runSync(showFeatureModelsTable());
+        }
         db.close();
         println("[Database.terminate] Database connection terminated")
         running = false
@@ -155,11 +128,13 @@ object VSATDatabase {
             //println("[Database.record_query] with SATNoFeatureModel");
             fmHash = noFeatureModel;
         } else {
-            val existingFM : Option[FMRecord] = runSyncForced(sql"SELECT * FROM FeatureModels WHERE hash = $fmHash".as[FMRecord].headOption);
+            val existingFM : Option[FMRecord] = runSyncForced(sql"SELECT * FROM FEATUREMODELS WHERE hash = $fmHash".as[FMRecord].headOption);
             if (existingFM.isEmpty) {
                 val fmrecord = FMRecord(fmHash, featureModel.decreate().toString());
-                println("[Database.record_query] inserting new feature model " + fmrecord.hash);
-                runSyncForced(sqlu"INSERT INTO FeatureModels VALUES (${fmrecord.hash}, ${fmrecord.formula});");
+                if (VSATMissionControl.DEBUG) {
+                    println("[Database.record_query] inserting new feature model " + fmrecord.hash);
+                }
+                runSyncForced(sqlu"INSERT INTO FEATUREMODELS VALUES (${fmrecord.hash}, ${fmrecord.formula});");
             } else {
                 //println("[Database.record_query] fm " + fmHash + " is already stored in db.");
             }
@@ -171,12 +146,14 @@ object VSATDatabase {
         val existingQuery : Option[SATQueryRecord] = evalForced(getSATQuery(key));
         if (existingQuery.isEmpty) {
             // The default case: This is a new query and we store it
-            runAsync(insertSATQuery(fromPrimaryKey(key, sentToSat)));
+            runSyncForced(insertSATQuery(fromPrimaryKey(key, sentToSat)));
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
             // Hyothesis: This happens because TypeChef might discard its cache inbetween different runs of the main method.
-            //println("[VSATDatabase.record_query] WE ACTUALLY GOT A CACHE HIT! AND NOW IMPLEMENT A WAY TO HANDLE THAT!")
+            if (VSATMissionControl.DEBUG) {
+                println("[VSATDatabase.record_query] Cache hit in database that was unnoticed by TypeChef.")
+            }
             incDbCacheHits(key);
         }
     }
@@ -184,33 +161,24 @@ object VSATDatabase {
 
     /// Database utility ///
 
-    def runAsync[T](action : DBIO[T]) : Future[T] = {
-        val f: Future[T] = db.run(action);
-
-        if (dbDebug) {
-            f.onComplete {
-                case Success(s) => println(s"Result: $s")
-                case Failure(t) => t.printStackTrace()
-            }
-        }
-
-        f
-    }
-
-    def runSync[T](action : DBIO[T]) : Try[T] = eval(runAsync(action))
+    private def runAsync[T](action : DBIO[T]) : Future[T] = db.run(action)
+    private def runSync[T](action : DBIO[T]) : Try[T] = eval(runAsync(action))
     // Like runSync but throws an exception if the action failed
-    def runSyncForced[T](action : DBIO[T]) : T = evalForced(runAsync(action))
+    private def runSyncForced[T](action : DBIO[T]) : T = evalForced(runAsync(action))
 
-    def eval[T](f : Future[T]) : Try[T] = Await.ready(f, Duration.Inf).value.get
+    private def eval[T](f : Future[T]) : Try[T] = Await.ready(f, Duration.Inf).value.get
     // like eval but throws an exception when the future fails
-    def evalForced[T](f : Future[T]) : T = Await.result(f, Duration.Inf)
+    private def evalForced[T](f : Future[T]) : T = Await.result(f, Duration.Inf)
 
 
     /// SQL Queries ///
 
+    private def dropQueriesTable() : DBIO[Int] = sqlu"DROP TABLE QUERIES"
+    private def dropFeatureModelsTable() : DBIO[Int] = sqlu"DROP TABLE FEATUREMODELS"
+
     /// sqlu produces a DBIO[Int] action where the returned int is the row cound (I guess)
-    def createQueriesTable() : DBIO[Int] =
-        sqlu"""CREATE TABLE Queries (
+    private def createQueriesTable() : DBIO[Int] =
+        sqlu"""CREATE TABLE QUERIES (
                formula varchar(max) NOT NULL,
                fmhash varchar(255) NOT NULL,
                mode varchar(50) NOT NULL,
@@ -220,14 +188,14 @@ object VSATDatabase {
                CONSTRAINT pkey PRIMARY KEY(formula, fmhash, mode)
                );"""
 
-    def createFeatureModelsTable() : DBIO[Int] =
-        sqlu"""CREATE TABLE FeatureModels (
+    private def createFeatureModelsTable() : DBIO[Int] =
+        sqlu"""CREATE TABLE FEATUREMODELS (
                hash varchar(255) NOT NULL,
                formula varchar(max) NOT NULL,
                PRIMARY KEY(hash)
                );"""
 
-    def tableExists(tablename : String) : Future[Boolean] = {
+    private def tableExists(tablename : String) : Future[Boolean] = {
         runAsync(sql"""SELECT TABLE_NAME
                FROM INFORMATION_SCHEMA.TABLES
                WHERE TABLE_SCHEMA = 'PUBLIC'
@@ -235,18 +203,18 @@ object VSATDatabase {
         ).map(o => o.nonEmpty)
     }
 
-    def getSATQuery(key: SATQueryPrimaryKey) : Future[Option[SATQueryRecord]] =
-        runAsync(sql"SELECT * FROM Queries WHERE formula = ${key.formula} AND fmhash = ${key.fmhash} AND mode = ${key.mode}".as[SATQueryRecord].headOption)
+    private def getSATQuery(key: SATQueryPrimaryKey) : Future[Option[SATQueryRecord]] =
+        runAsync(sql"SELECT * FROM QUERIES WHERE formula = ${key.formula} AND fmhash = ${key.fmhash} AND mode = ${key.mode}".as[SATQueryRecord].headOption)
 
-    def insertSATQuery(q : SATQueryRecord) : DBIO[Int] =
-        sqlu"insert into Queries values (${q.formula}, ${q.fmhash}, ${q.mode}, ${q.tcCacheHits}, ${q.dbCacheHits}, ${q.sentToSAT});"
+    private def insertSATQuery(q : SATQueryRecord) : DBIO[Int] =
+        sqlu"insert into QUERIES values (${q.formula}, ${q.fmhash}, ${q.mode}, ${q.tcCacheHits}, ${q.dbCacheHits}, ${q.sentToSAT});"
 
-    def incTcCacheHits(key: SATQueryPrimaryKey) : Future[Int] = {
+    private def incTcCacheHits(key: SATQueryPrimaryKey) : Future[Int] = {
         getSATQuery(key).flatMap {
             case Some(satQuery) => {
                 val newTcCacheHits = 1 + satQuery.tcCacheHits;
                 runAsync(
-                    sqlu"""UPDATE Queries
+                    sqlu"""UPDATE QUERIES
                           SET tcCacheHits=$newTcCacheHits
                           WHERE formula = ${satQuery.formula}
                           AND fmhash = ${satQuery.fmhash}
@@ -257,7 +225,7 @@ object VSATDatabase {
     }
 
     // #clone-and-own
-    def incDbCacheHits(key: SATQueryPrimaryKey) : Future[Int] = {
+    private def incDbCacheHits(key: SATQueryPrimaryKey) : Future[Int] = {
         getSATQuery(key).flatMap {
             case Some(satQuery) => {
                 val newDbCacheHits = 1 + satQuery.dbCacheHits;
@@ -275,27 +243,33 @@ object VSATDatabase {
 
     /// Debug SQL Queries ///
 
-    def showQueriesTable() : DBIO[Unit] = {
+    private def showQueriesTable() : DBIO[Unit] = {
         val sep = " | ";
-        sql"SELECT * FROM Queries".as[SATQueryRecord].map { satqueries =>
+        sql"SELECT * FROM QUERIES".as[SATQueryRecord].map { satqueries =>
             println("[VSATDatabase.showQueriesTable] SAT_QUERIES:")
+            println(tableLine)
             println("  formula"+sep+"fmhash"+sep+"mode"+sep+"cacheHits"+sep+"sentToSAT")
+            println(tableLine)
             for(q <- satqueries)
                 println("  " + longStringPreview(q.formula) + sep + q.fmhash + sep + q.mode + sep + q.tcCacheHits + sep + q.dbCacheHits + sep + q.sentToSAT)
+            println(tableLine + "\n")
         }
     }
 
-    def showFeatureModelsTable() : DBIO[Unit] = {
+    private def showFeatureModelsTable() : DBIO[Unit] = {
         val sep = " | ";
-        sql"SELECT * FROM FeatureModels".as[FMRecord].map { fms =>
+        sql"SELECT * FROM FEATUREMODELS".as[FMRecord].map { fms =>
             println("[VSATDatabase.showFeatureModelsTable] FEATURE_MODELS:")
+            println(tableLine)
             println("  hash"+sep+"formula")
+            println(tableLine)
             for(fm <- fms)
                 println("  " + fm.hash + sep + longStringPreview(fm.formula))
+            println(tableLine + "\n")
         }
     }
 
-    def printTableNames() : DBIO[Unit] = {
+    private def printTableNames() : DBIO[Unit] = {
         sql"""SELECT TABLE_NAME
                FROM INFORMATION_SCHEMA.TABLES
                WHERE TABLE_SCHEMA = 'PUBLIC'""".as[String].map {
@@ -321,11 +295,11 @@ object VSATDatabase {
 
     /// Test SQL Queries ///
 
-    def createTestTable() : DBIO[Unit] = {
+    private def createTestTable() : DBIO[Unit] = {
         DBIO.seq(sqlu"CREATE TABLE TEST (id int NOT NULL, name varchar(255) NOT NULL);")
     }
 
-    def showTestTable() : DBIO[Unit] = {
+    private def showTestTable() : DBIO[Unit] = {
         sql"SELECT * FROM TEST".as[(Int, String)].map { persons =>
             println("Persons:")
             for((id, name) <- persons)
@@ -333,8 +307,8 @@ object VSATDatabase {
         }
     }
 
-    var test_id = 1;
-    def insertAgentSmithIntoTest(): DBIO[Unit] = {
+    private var test_id = 1;
+    private def insertAgentSmithIntoTest(): DBIO[Unit] = {
         test_id += 1;
         DBIO.seq(sqlu"INSERT INTO TEST VALUES (${test_id}, 'Agent Smith');")
     }
