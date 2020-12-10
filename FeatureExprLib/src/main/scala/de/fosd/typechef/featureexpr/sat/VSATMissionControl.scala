@@ -8,15 +8,13 @@ import scala.io.Source
 object VSATMissionControl {
     import VSATMode._
 
-    /// Configure where to log here.
-    private val withTextBasedLogging : Boolean = false;
-    private val withDatabaseLogging : Boolean = true;
-    private var currentMode : VSATMode = VSATMode.Unknown;
-
-    /// Configure debug settings here
-    val DEBUG : Boolean = false;
+    /// Configure the logging here.
+    private val withTextBasedLogging : Boolean = true;
+    private val withDatabaseLogging : Boolean = false;
+    val DEBUG : Boolean = false; // Will print more information (mostly used for database logging)
 
     /// Do not touch these
+    private var currentMode : VSATMode = VSATMode.Unknown;
     var metadatadir : String = "./VSAT_metadata/"
     val runIndexFile : String = metadatadir + "runno.txt";
     val startRunNumber : Int = 1;
