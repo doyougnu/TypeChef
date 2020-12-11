@@ -9,8 +9,8 @@ object VSATMissionControl {
     import VSATMode._
 
     /// Configure the logging here.
-    private val withTextBasedLogging : Boolean = true;
-    private val withDatabaseLogging : Boolean = false;
+    private val withTextBasedLogging : Boolean = false;
+    private val withDatabaseLogging : Boolean = true;
     val DEBUG : Boolean = false; // Will print more information (mostly used for database logging)
 
     /// Do not touch these

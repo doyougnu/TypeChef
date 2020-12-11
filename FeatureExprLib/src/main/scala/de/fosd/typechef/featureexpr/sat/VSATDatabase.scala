@@ -150,7 +150,7 @@ object VSATDatabase {
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
-            // Hyothesis: This happens because TypeChef might discard its cache inbetween different runs of the main method.
+            // Hypothesis: This happens because TypeChef might discard its cache inbetween different runs of the main method.
             if (VSATMissionControl.DEBUG) {
                 println("[VSATDatabase.record_query] Cache hit in database that was unnoticed by TypeChef.")
             }

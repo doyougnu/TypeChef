@@ -46,16 +46,26 @@ class SATFeatureModel(val variables: Map[String, Int], val clauses: IVec[IVecInt
           // println("size here!!!!!!!!! " + clause.size())
             // convert the array to a list because thats more nice
             val clauseIndicesList:List[Int] = clauseIndicesArray.toList
-            // convert each id to the real variable name there is very clause
+            // Jeff: convert each id to the real variable name there is very clause
             // wants some key at -1 that never exists in the map. I bet this is
             // a True literal
-          val clauseVars:List[String] = clauseIndicesList.filter(_ > 0).map(intToVar)
-            // create a literal SATFeatureExpr for each variable
-            // This is totally not side-effect free because the builder creates lots of caching stuff.
-            // I no idea if this does soemthing bad or whatever.
-            // I am so annoyed -.-
-            // FeatureIDE rulez.
-            val clauseExprs:List[SATFeatureExpr] = clauseVars.map(FExprBuilder.definedExternal)
+//            val clauseVars:List[String] = clauseIndicesList.filter(_ > 0).map(intToVar)
+//            val clauseExprs:List[SATFeatureExpr] = clauseVars.map(FExprBuilder.definedExternal)
+            // Paul: No it is not. When looking at 'posNegFeatureName' in this is file it is very likely that
+            // negative ids are negated literals. Also, all featuremodels we created so far did not contain any
+            // negative literals!
+            val clauseExprs:List[SATFeatureExpr] = clauseIndicesList.map(i =>
+                // create a literal SATFeatureExpr for each variable
+                // This is totally not side-effect free because the builder creates lots of caching stuff.
+                // I no idea if this does soemthing bad or whatever.
+                // I am so annoyed -.-
+                // FeatureIDE rulez.
+                if (i < 0) {
+                    new Not(FExprBuilder.definedExternal(intToVar(-i)))
+                } else {
+                    FExprBuilder.definedExternal(intToVar(i))
+                }
+            )
             // and now convert our list of expressions to an OR statement and add it to our list of clauses
             vsatNiceClausesBla = vsatNiceClausesBla :+ FExprBuilder.createOr(clauseExprs)
         }
