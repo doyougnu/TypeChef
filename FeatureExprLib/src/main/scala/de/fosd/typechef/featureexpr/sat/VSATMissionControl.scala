@@ -8,6 +8,13 @@ import scala.io.Source
 object VSATMissionControl {
     import VSATMode._
 
+    /** TODO:
+     * I am in doubt if the hashes for feature models we have are good.
+     * When TypeChef is restarted, we get entirely new hashes for the same formulas.
+     * So we can get duplicate fms and thus seemingly different sat queries and even more worse:
+     * We could get a feature model with an existing hash!
+     * This should not overwrite the existing one in the db because SQL INSERT fails then but we might not notice because TypeChef continues to run on such an exception.
+     */
     /// Configure the logging here.
     private val withTextBasedLogging : Boolean = false;
     private val withDatabaseLogging : Boolean = true;
