@@ -8,13 +8,6 @@ import scala.io.Source
 object VSATMissionControl {
     import VSATMode._
 
-    /** TODO:
-     * I am in doubt if the hashes for feature models we have are good.
-     * When TypeChef is restarted, we get entirely new hashes for the same formulas.
-     * So we can get duplicate fms and thus seemingly different sat queries and even more worse:
-     * We could get a feature model with an existing hash!
-     * This should not overwrite the existing one in the db because SQL INSERT fails then but we might not notice because TypeChef continues to run on such an exception.
-     */
     /// Configure the logging here.
     private val withTextBasedLogging : Boolean = false;
     private val withDatabaseLogging : Boolean = true;
@@ -97,22 +90,47 @@ object VSATMissionControl {
         cnf.map(clauseToStr).mkString(andConnective);
     }
 
-    private def fmhash_arithmetic(fm : SATFeatureModel) : Int = {
+    private def fmhash_arithmetic(fm : SATFeatureModel) : Long = {
         import org.sat4j.specs.IVecInt;
 
-        def foldClause(clause : IVecInt) : Int = {
-            var clauseIndicesArray : Array[Int] = new Array[Int](clause.size());
+        if (fm == SATNoFeatureModel) {
+            return 0;
+        }
+
+        // inspired by https://cp-algorithms.com/string/string-hashing.html
+        var globalIndex : Long = 0L;
+        val peterPrime : Long = 53L;
+        val hashLimit : Long = 1099511627689L; // greatest prime smaller than (2^40)
+
+        def hashClause(clause : IVecInt) : Long = {
+            var clauseIndicesArray: Array[Int] = new Array[Int](clause.size());
             clause.copyTo(clauseIndicesArray);
-            clauseIndicesArray.sum
-        };
+            clauseIndicesArray
+                .map(x => {
+                    // make everything positive
+                    if (x < 0) {
+                        (2 * (-x)) - 1
+                    } else {
+                        2 * x
+                    }
+                })
+                .map(i => i.toLong)
+                .sum % hashLimit
+        }
 
         var cnf : Array[IVecInt] = new Array[IVecInt](fm.clauses.size());
         fm.clauses.copyTo(cnf);
-        cnf.map(foldClause).foldLeft(1)(_ * _)
+        cnf
+            .map(i => {
+                val ret : Long = hashClause(i) * scala.math.pow(peterPrime, globalIndex).longValue();
+                globalIndex += 1L;
+                ret % hashLimit
+            })
+            .foldLeft(0L)((a, b) => (a + b) % hashLimit);
     }
 
     def hash(fm : SATFeatureModel) : String = {
-        fmhash_arithmetic(fm) + "_" + fmhash_java(fm)
+        "" + fmhash_arithmetic(fm) //+ "_" + runNumber + "_" + fmhash_java(fm)
     }
 
     /// Get and Set the VSAT_MODE here

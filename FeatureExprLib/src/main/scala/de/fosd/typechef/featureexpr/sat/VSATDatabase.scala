@@ -130,13 +130,12 @@ object VSATDatabase {
         } else {
             val existingFM : Option[FMRecord] = runSyncForced(sql"SELECT * FROM FEATUREMODELS WHERE hash = $fmHash".as[FMRecord].headOption);
             if (existingFM.isEmpty) {
-                val fmrecord = FMRecord(fmHash, featureModel.decreate().toString());
+                val fmFormula = featureModel.decreate().toString();
+                val fmrecord = FMRecord(fmHash, fmFormula);
                 if (VSATMissionControl.DEBUG) {
                     println("[Database.record_query] inserting new feature model " + fmrecord.hash);
                 }
-                runSyncForced(sqlu"INSERT INTO FEATUREMODELS VALUES (${fmrecord.hash}, ${fmrecord.formula});");
-            } else {
-                //println("[Database.record_query] fm " + fmHash + " is already stored in db.");
+                runAsync(sqlu"INSERT INTO FEATUREMODELS VALUES (${fmrecord.hash}, ${fmrecord.formula});");
             }
         }
 
@@ -146,7 +145,7 @@ object VSATDatabase {
         val existingQuery : Option[SATQueryRecord] = evalForced(getSATQuery(key));
         if (existingQuery.isEmpty) {
             // The default case: This is a new query and we store it
-            runSyncForced(insertSATQuery(fromPrimaryKey(key, sentToSat)));
+            runAsync(insertSATQuery(fromPrimaryKey(key, sentToSat)));
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
