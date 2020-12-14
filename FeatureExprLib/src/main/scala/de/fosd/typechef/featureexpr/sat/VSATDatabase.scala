@@ -112,7 +112,7 @@ object VSATDatabase {
         incTcCacheHits(
             SATQueryPrimaryKey(
                 the_query.toString,
-                featureModel.toString,
+                VSATMissionControl.hash(featureModel),
                 VSATMissionControl.getCurrentMode().toString));
     }
 
@@ -123,7 +123,7 @@ object VSATDatabase {
         // If we get such a cache hit, we store it in dbCacheHits.
 
         // 1.) Store FM if not stored already
-        var fmHash : String = featureModel.toString
+        var fmHash : String = VSATMissionControl.hash(featureModel)
         if (featureModel == SATNoFeatureModel) {
             //println("[Database.record_query] with SATNoFeatureModel");
             fmHash = noFeatureModel;

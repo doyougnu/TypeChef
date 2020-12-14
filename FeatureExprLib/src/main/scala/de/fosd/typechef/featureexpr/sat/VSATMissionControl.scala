@@ -75,6 +75,47 @@ object VSATMissionControl {
 
     def isFirstRun() : Boolean = startRunNumber == runNumber;
 
+    /// Hashing of Feature Models
+
+    // Will produce: de.fosd.typechef.featureexpr.sat.SATFeatureModel@<some number here>
+    private def fmhash_java(fm : SATFeatureModel) : String = fm.toString
+
+    private def fmhash_shortformula(fm : SATFeatureModel) : String = {
+        import org.sat4j.specs.IVecInt;
+
+        val mempty : String = "";
+        val orConnective : String = "+";
+        val andConnective : String = "*";
+
+        def clauseToStr(clause : IVecInt) : String = {
+            var clauseIndicesArray : Array[Int] = new Array[Int](clause.size());
+            clause.copyTo(clauseIndicesArray);
+            "(" + clauseIndicesArray.mkString(orConnective) + ")"
+        };
+
+        var cnf : Array[IVecInt] = new Array[IVecInt](fm.clauses.size());
+        fm.clauses.copyTo(cnf);
+        cnf.map(clauseToStr).mkString(andConnective);
+    }
+
+    private def fmhash_arithmetic(fm : SATFeatureModel) : Int = {
+        import org.sat4j.specs.IVecInt;
+
+        def foldClause(clause : IVecInt) : Int = {
+            var clauseIndicesArray : Array[Int] = new Array[Int](clause.size());
+            clause.copyTo(clauseIndicesArray);
+            clauseIndicesArray.sum
+        };
+
+        var cnf : Array[IVecInt] = new Array[IVecInt](fm.clauses.size());
+        fm.clauses.copyTo(cnf);
+        cnf.map(foldClause).foldLeft(1)(_ * _)
+    }
+
+    def hash(fm : SATFeatureModel) : String = {
+        fmhash_arithmetic(fm) + fmhash_java(fm).substring("de.fosd.typechef.featureexpr.sat.".length)
+    }
+
     /// Get and Set the VSAT_MODE here
 
     def setCurrentMode(newMode : VSATMode) : Unit = {

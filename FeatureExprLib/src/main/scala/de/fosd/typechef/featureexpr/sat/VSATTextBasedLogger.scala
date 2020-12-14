@@ -51,7 +51,7 @@ object VSATTextBasedLogger {
             if (featureModel == SATNoFeatureModel) {
                 "plain"
             } else {
-                featureModel.toString
+                VSATMissionControl.hash(featureModel)
             }
         )
         Files.createDirectories(Paths.get(path))

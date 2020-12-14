@@ -23,6 +23,11 @@ import scala.io.Source
  * format
  */
 class SATFeatureModel(val variables: Map[String, Int], val clauses: IVec[IVecInt], val lastVarId: Int) extends FeatureModel {
+
+    /**
+     * @authors: Jeff and Paul and not the TypeChef devs
+     * @return
+     */
     def decreate() : SATFeatureExpr = {
         // We assume that the map "variables" is a bijection.
         // Everything else would not make sense.
