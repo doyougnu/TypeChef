@@ -98,7 +98,6 @@ object VSATMissionControl {
         }
 
         // inspired by https://cp-algorithms.com/string/string-hashing.html
-        var globalIndex : Long = 0L;
         val peterPrime : Long = 53L;
         val hashLimit : Long = 1099511627689L; // greatest prime smaller than (2^40)
 
@@ -118,12 +117,13 @@ object VSATMissionControl {
                 .sum % hashLimit
         }
 
+        var currentPeterPrime : Long = 1L;
         var cnf : Array[IVecInt] = new Array[IVecInt](fm.clauses.size());
         fm.clauses.copyTo(cnf);
         cnf
             .map(i => {
-                val ret : Long = hashClause(i) * scala.math.pow(peterPrime, globalIndex).longValue();
-                globalIndex += 1L;
+                val ret : Long = hashClause(i) * currentPeterPrime;
+                currentPeterPrime = (currentPeterPrime * peterPrime) % hashLimit;
                 ret % hashLimit
             })
             .foldLeft(0L)((a, b) => (a + b) % hashLimit);
