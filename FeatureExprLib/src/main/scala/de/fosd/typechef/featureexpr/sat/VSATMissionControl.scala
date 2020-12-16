@@ -10,10 +10,11 @@ import scala.io.Source
 case class VSATBDDQueryMetadata(
                                // True when BDDFeatureExpr.isSatisfiable was invoked.
                                // False when BDDFeatureExpr.isSatisfiable2 was invoked.
-                               invokedOnSat1 : Boolean
+//                               invokedOnSat1 : Boolean
+//                               ,
                                // True when the formula was sent to the solving stage.
                                // False when the formula was simple enough to be solved immediately by typechef.
-                             , sentToSat : Boolean
+                               sentToSat : Boolean
                            );
 
 object VSATMissionControl {

@@ -9,6 +9,9 @@ import de.fosd.typechef.featureexpr.SingleFeatureExpr
 ;
 import java.io._
 
+import de.fosd.typechef.featureexpr.sat.VSATMissionControl
+import de.fosd.typechef.featureexpr.sat.VSATBDDQueryMetadata
+
 /**
  * connection to the SAT4j SAT solver
  *
@@ -147,6 +150,10 @@ class SatSolverImpl(featureModel: BDDFeatureModel) {
     def isSatisfiable(dnf: Iterator[Seq[Int]], lookupName: (Int) => String): Boolean = {
         this.lastModel = null // remove model from last satisfiability check
 
+        // [VSAT BDD] We cannot reconstruct the BDDFeatureExpr we initially had, here.
+        // We have to record queries here and cannot do so earlier because this is also invoked by
+        // getSatisfyingAssignment and maybe even more places (which we did not find).
+        VSATMissionControl.bdd_record_query(null, featureModel, new VSATBDDQueryMetadata(true));
 
         val startTime = System.currentTimeMillis();
 

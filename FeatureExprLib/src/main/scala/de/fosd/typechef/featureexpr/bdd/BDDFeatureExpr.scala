@@ -133,7 +133,6 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
     def isSatisfiable(f: FeatureModel): Boolean = FExprBuilder.synchronized {
         val fm = asBDDFeatureModel(f)
 
-        val invokedOnSat1 = true;
         var sentToSAT = false;
         var cacheHit = false;
 
@@ -156,10 +155,10 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
             }
         }
 
-        val metadata = new VSATBDDQueryMetadata(invokedOnSat1, sentToSAT);
+        val metadata = new VSATBDDQueryMetadata(sentToSAT);
         if (cacheHit) {
             VSATMissionControl.bdd_cache_hit(this, fm, metadata);
-        } else {
+        } else if (!sentToSAT) { // if sentToSAT then the SatSolver invokes bdd_record_query already
             VSATMissionControl.bdd_record_query(this, fm, metadata);
         }
 
@@ -175,7 +174,6 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
     def isSatisfiable2(f: FeatureModel): Boolean = FExprBuilder.synchronized {
         val fm = asBDDFeatureModel(f)
 
-        val invokedOnSat1 = false;
         var sentToSAT = false;
         var cacheHit = false;
 
@@ -198,10 +196,10 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
             }
         }
 
-        val metadata = new VSATBDDQueryMetadata(invokedOnSat1, sentToSAT);
+        val metadata = new VSATBDDQueryMetadata(sentToSAT);
         if (cacheHit) {
             VSATMissionControl.bdd_cache_hit(this, fm, metadata);
-        } else {
+        } else if (!sentToSAT) { // if sentToSAT then the SatSolver invokes bdd_record_query already
             VSATMissionControl.bdd_record_query(this, fm, metadata);
         }
 
