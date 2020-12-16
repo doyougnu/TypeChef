@@ -76,7 +76,9 @@ object VSATMissionControl {
 
     /// Hashing of Feature Models
 
-    private def fmhash_java(fm : SATFeatureModel) : String = fm.toString.substring("de.fosd.typechef.featureexpr.sat.SATFeatureModel@".length)
+    private def fmhash_tostr(fm : SATFeatureModel) : String = fm.toString.substring("de.fosd.typechef.featureexpr.sat.SATFeatureModel@".length)
+
+    private def fmhash_javastrhashcode(fm : SATFeatureModel) : Int = fmhash_shortformula(fm).hashCode
 
     private def fmhash_shortformula(fm : SATFeatureModel) : String = {
         import org.sat4j.specs.IVecInt;
@@ -136,7 +138,7 @@ object VSATMissionControl {
     }
 
     def hash(fm : SATFeatureModel) : String = {
-        "" + fmhash_arithmetic(fm) //+ "_" + runNumber + "_" + fmhash_java(fm)
+        fmhash_javastrhashcode(fm) + "_" + fmhash_arithmetic(fm) //+ "_" + runNumber + "_" + fmhash_java(fm)
     }
 
     /// Get and Set the VSAT_MODE here
