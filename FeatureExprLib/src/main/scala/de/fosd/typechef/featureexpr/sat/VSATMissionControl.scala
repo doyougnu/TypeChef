@@ -8,6 +8,12 @@ import scala.io.Source
 object VSATMissionControl {
     import VSATMode._
 
+    /**
+     * TODO for Paul:
+     * - Count queries on BDDs
+     * - See if we have a server where we can run the linux analysis.
+     */
+
     /// Configure the logging here.
     private val withTextBasedLogging : Boolean = false;
     private val withDatabaseLogging : Boolean = true;
