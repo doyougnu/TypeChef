@@ -157,7 +157,7 @@ sealed abstract class SATFeatureExpr extends FeatureExpr {
         if (isCached.isDefined) {
             // cache hit
             ret = isCached.get;
-            VSATMissionControl.cache_hit(toCnfEquiSat, f);
+            VSATMissionControl.sat_cache_hit(toCnfEquiSat, f);
         } else {
             // cache miss
             ret = new SatSolver().isSatisfiable(toCnfEquiSat, f);

@@ -121,11 +121,11 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
           lastModel = trueModel
         }
 
-        VSATMissionControl.record_query(exprCNF, featureModel, false);
+        VSATMissionControl.sat_record_query(exprCNF, featureModel, false);
         return true
       }
       if (exprCNF == False) {
-        VSATMissionControl.record_query(exprCNF, featureModel, false);
+        VSATMissionControl.sat_record_query(exprCNF, featureModel, false);
         return false
       }
     }
@@ -139,14 +139,14 @@ private class SatSolverImpl(featureModel: SATFeatureModel, isReused: Boolean) {
         case _ => sys.error("This really should not be possible")
       }
 
-      VSATMissionControl.record_query(exprCNF, featureModel, false);
+      VSATMissionControl.sat_record_query(exprCNF, featureModel, false);
       return true
     }
 
     val startTime = System.currentTimeMillis();
 
 // print("THE MODE: " + vsat_get_mode())
-    VSATMissionControl.record_query(exprCNF, featureModel, true);
+    VSATMissionControl.sat_record_query(exprCNF, featureModel, true);
 
     if (PROFILING)
       print("<SAT " + countClauses(exprCNF) + " with " + countFlags(exprCNF) + " flags; ")

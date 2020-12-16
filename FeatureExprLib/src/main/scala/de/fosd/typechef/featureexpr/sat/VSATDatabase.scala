@@ -107,8 +107,8 @@ object VSATDatabase {
 
     /// VSAT logging ///
 
-    def cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit = {
-        //println("[Database.cache_hit]")
+    def sat_cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit = {
+        //println("[Database.sat_cache_hit]")
         incTcCacheHits(
             SATQueryPrimaryKey(
                 the_query.toString,
@@ -116,7 +116,7 @@ object VSATDatabase {
                 VSATMissionControl.getCurrentMode().toString));
     }
 
-    def record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean): Unit = {
+    def sat_record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean): Unit = {
         // We assume that the given query is not yet stored in the DB
         // If it is, we have a cache hit that was missed by TypeChef.
         // This might happen due to repeated runs of TypeChef.
@@ -125,7 +125,7 @@ object VSATDatabase {
         // 1.) Store FM if not stored already
         var fmHash : String = VSATMissionControl.hash(featureModel)
         if (featureModel == SATNoFeatureModel) {
-            //println("[Database.record_query] with SATNoFeatureModel");
+            //println("[Database.sat_record_query] with SATNoFeatureModel");
             fmHash = noFeatureModel;
         } else {
             val existingFM : Option[FMRecord] = runSyncForced(sql"SELECT * FROM FEATUREMODELS WHERE hash = $fmHash".as[FMRecord].headOption);
@@ -133,7 +133,7 @@ object VSATDatabase {
                 val fmFormula = featureModel.decreate().toString();
                 val fmrecord = FMRecord(fmHash, fmFormula);
                 if (VSATMissionControl.DEBUG) {
-                    println("[Database.record_query] inserting new feature model " + fmrecord.hash);
+                    println("[Database.sat_record_query] inserting new feature model " + fmrecord.hash);
                 }
                 runAsync(sqlu"INSERT INTO FEATUREMODELS VALUES (${fmrecord.hash}, ${fmrecord.formula});");
             }
@@ -151,7 +151,7 @@ object VSATDatabase {
             // Such a cache hit remains unobserved by TypeChef.
             // Hypothesis: This happens because TypeChef might discard its cache inbetween different runs of the main method.
             if (VSATMissionControl.DEBUG) {
-                println("[VSATDatabase.record_query] Cache hit in database that was unnoticed by TypeChef.")
+                println("[VSATDatabase.sat_record_query] Cache hit in database that was unnoticed by TypeChef.")
             }
             incDbCacheHits(key);
         }
@@ -184,8 +184,8 @@ object VSATDatabase {
                tcCacheHits int NOT NULL,
                dbCacheHits int NOT NULL,
                sentToSAT bool NOT NULL,
-               CONSTRAINT pkey PRIMARY KEY(formula, fmhash, mode)
-               );"""
+               PRIMARY KEY(formula, fmhash, mode)
+               );"""//CONSTRAINT pkey
 
     private def createFeatureModelsTable() : DBIO[Int] =
         sqlu"""CREATE TABLE FEATUREMODELS (

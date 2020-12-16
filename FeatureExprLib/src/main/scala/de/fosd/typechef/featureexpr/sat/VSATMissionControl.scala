@@ -156,21 +156,21 @@ object VSATMissionControl {
 
     /// Query Logging from here
 
-    def cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit = {
+    def sat_cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel) : Unit = {
         if (withTextBasedLogging) {
-            VSATTextBasedLogger.cache_hit(the_query, featureModel);
+            VSATTextBasedLogger.sat_cache_hit(the_query, featureModel);
         }
         if (withDatabaseLogging) {
-            VSATDatabase.cache_hit(the_query, featureModel);
+            VSATDatabase.sat_cache_hit(the_query, featureModel);
         }
     }
 
-    def record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean) : Unit = {
+    def sat_record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean) : Unit = {
         if (withTextBasedLogging) {
-            VSATTextBasedLogger.record_query(the_query, featureModel, sentToSat);
+            VSATTextBasedLogger.sat_record_query(the_query, featureModel, sentToSat);
         }
         if (withDatabaseLogging) {
-            VSATDatabase.record_query(the_query, featureModel, sentToSat);
+            VSATDatabase.sat_record_query(the_query, featureModel, sentToSat);
         }
     }
 }

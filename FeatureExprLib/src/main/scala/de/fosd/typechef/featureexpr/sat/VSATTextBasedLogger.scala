@@ -68,7 +68,7 @@ object VSATTextBasedLogger {
         path
     }
 
-    def cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit = {
+    def sat_cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit = {
         /**
          * Choose exactly one of red (memory friendly) or blue pill (runtime friendly).
          */
@@ -153,7 +153,7 @@ object VSATTextBasedLogger {
      *                  @Jeff: Depending on this value we might want to drop queries immediately.
      *                         I included them for now because we will get cache_hits on these queries, too.
      */
-    def record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean) {
+    def sat_record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean) {
         // [VSATDB] This is where queries are recorded.
         val fmPath = getFMDir(featureModel) + featureModelFileName
 
@@ -174,7 +174,7 @@ object VSATTextBasedLogger {
          * 1.) We create a directory for each FM and group queries on that FM in that directory.
          * 2.) We log all queries (those passed as arguments to this method) and the value of sentToSAT
          *     in "<MODE>/SAT_problems.txt", where <MODE> is the current mode of Typechef.
-         * 3.) On a cache hit (see method cache_hit), we write the formula on which we got a cache hit to "<MODE>/VSAT_CACHE_HITS.txt".
+         * 3.) On a cache hit (see method sat_cache_hit), we write the formula on which we got a cache hit to "<MODE>/VSAT_CACHE_HITS.txt".
          */
         val problemsPath = getCurrentQueryDir(featureModel) + queriesFileName;
         val output = new BufferedWriter(new FileWriter(problemsPath, true))
