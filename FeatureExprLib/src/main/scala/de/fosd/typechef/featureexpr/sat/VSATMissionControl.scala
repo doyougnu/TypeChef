@@ -1,9 +1,20 @@
 package de.fosd.typechef.featureexpr.sat
 
+import de.fosd.typechef.featureexpr.bdd._
+
 import java.io.{BufferedWriter, FileWriter}
 import java.nio.file.{Files, Paths}
 
 import scala.io.Source
+
+case class VSATBDDQueryMetadata(
+                               // True when BDDFeatureExpr.isSatisfiable was invoked.
+                               // False when BDDFeatureExpr.isSatisfiable2 was invoked.
+                               invokedOnSat1 : Boolean
+                               // True when the formula was sent to the solving stage.
+                               // False when the formula was simple enough to be solved immediately by typechef.
+                             , sentToSat : Boolean
+                           );
 
 object VSATMissionControl {
     import VSATMode._
@@ -172,5 +183,13 @@ object VSATMissionControl {
         if (withDatabaseLogging) {
             VSATDatabase.sat_record_query(the_query, featureModel, sentToSat);
         }
+    }
+
+    def bdd_cache_hit(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
+
+    }
+
+    def bdd_record_query(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
+
     }
 }

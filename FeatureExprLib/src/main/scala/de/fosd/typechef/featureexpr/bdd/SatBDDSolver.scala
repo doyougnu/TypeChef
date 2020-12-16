@@ -80,7 +80,7 @@ object SatSolver {
      * has shown that it can lead to incorrect results,
      * hence caching is currently disabled
      */
-    val CACHING = true
+    val CACHING = true // [VSAT BDD] Should we turn that off? -> https://github.com/ckaestne/TypeChef/issues/45
 
     def isSatisfiable(featureModel: BDDFeatureModel, dnf: Iterator[Seq[Int]], lookupName: (Int) => String): Boolean = {
         (if (CACHING && (nfm(featureModel) != BDDNoFeatureModel))
@@ -194,7 +194,7 @@ class SatSolverImpl(featureModel: BDDFeatureModel) {
             for (f <- featureModel.assumedFalse)
                 uniqueFlagIds.get(f).map(id => assumptions.push(-id))
 
-
+// [VSAT BDD] Jeff this is from you right?
 val output = new BufferedWriter(new FileWriter("BDD_problems.txt", true))
 print("Writing BDD: " + assumptions + "\n")
 output.write(assumptions + "\n")
