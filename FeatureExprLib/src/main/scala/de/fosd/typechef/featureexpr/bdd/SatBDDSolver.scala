@@ -195,10 +195,10 @@ class SatSolverImpl(featureModel: BDDFeatureModel) {
                 uniqueFlagIds.get(f).map(id => assumptions.push(-id))
 
 // [VSAT BDD] Jeff this is from you right?
-val output = new BufferedWriter(new FileWriter("BDD_problems.txt", true))
-print("Writing BDD: " + assumptions + "\n")
-output.write(assumptions + "\n")
-output.close()
+//val output = new BufferedWriter(new FileWriter("BDD_problems.txt", true))
+//print("Writing BDD: " + assumptions + "\n")
+//output.write(assumptions + "\n")
+//output.close()
 
 
 
