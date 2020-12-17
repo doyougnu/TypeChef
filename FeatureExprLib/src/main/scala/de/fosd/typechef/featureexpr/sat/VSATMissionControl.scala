@@ -1,6 +1,7 @@
 package de.fosd.typechef.featureexpr.sat
 
 import de.fosd.typechef.featureexpr.bdd._
+import org.sat4j.specs.{IVec, IVecInt};
 
 import java.io.{BufferedWriter, FileWriter}
 import java.nio.file.{Files, Paths}
@@ -90,11 +91,9 @@ object VSATMissionControl {
 
     private def fmhash_tostr(fm : SATFeatureModel) : String = fm.toString.substring("de.fosd.typechef.featureexpr.sat.SATFeatureModel@".length)
 
-    private def fmhash_javastrhashcode(fm : SATFeatureModel) : Int = fmhash_shortformula(fm).hashCode
+    private def fmhash_javastrhashcode(fmclauses : IVec[IVecInt]) : Int = fmhash_shortformula(fmclauses).hashCode
 
-    private def fmhash_shortformula(fm : SATFeatureModel) : String = {
-        import org.sat4j.specs.IVecInt;
-
+    private def fmhash_shortformula(fmclauses : IVec[IVecInt]) : String = {
         val mempty : String = "";
         val orConnective : String = "+";
         val andConnective : String = "*";
@@ -105,18 +104,12 @@ object VSATMissionControl {
             "(" + clauseIndicesArray.mkString(orConnective) + ")"
         };
 
-        var cnf : Array[IVecInt] = new Array[IVecInt](fm.clauses.size());
-        fm.clauses.copyTo(cnf);
+        var cnf : Array[IVecInt] = new Array[IVecInt](fmclauses.size());
+        fmclauses.copyTo(cnf);
         cnf.map(clauseToStr).mkString(andConnective);
     }
 
-    private def fmhash_arithmetic(fm : SATFeatureModel) : Long = {
-        import org.sat4j.specs.IVecInt;
-
-        if (fm == SATNoFeatureModel) {
-            return 0;
-        }
-
+    private def fmhash_arithmetic(fmclauses : IVec[IVecInt]) : Long = {
         // inspired by https://cp-algorithms.com/string/string-hashing.html
         val peterPrime : Long = 53L;
         val hashLimit : Long = 1099511627689L; // greatest prime smaller than (2^40)
@@ -138,8 +131,8 @@ object VSATMissionControl {
         }
 
         var currentPeterPrime : Long = 1L;
-        var cnf : Array[IVecInt] = new Array[IVecInt](fm.clauses.size());
-        fm.clauses.copyTo(cnf);
+        var cnf : Array[IVecInt] = new Array[IVecInt](fmclauses.size());
+        fmclauses.copyTo(cnf);
         cnf
             .map(i => {
                 val ret : Long = hashClause(i) * currentPeterPrime;
@@ -150,7 +143,11 @@ object VSATMissionControl {
     }
 
     def hash(fm : SATFeatureModel) : String = {
-        fmhash_javastrhashcode(fm) + "_" + fmhash_arithmetic(fm) //+ "_" + runNumber + "_" + fmhash_java(fm)
+        fmhash_javastrhashcode(fm.clauses) + "_" + fmhash_arithmetic(fm.clauses) //+ "_" + runNumber + "_" + fmhash_java(fm)
+    }
+
+    def hash(fm : BDDFeatureModel) : String = {
+        fmhash_javastrhashcode(fm.clauses) + "_" + fmhash_arithmetic(fm.clauses)
     }
 
     /// Get and Set the VSAT_MODE here
@@ -187,10 +184,14 @@ object VSATMissionControl {
     }
 
     def bdd_cache_hit(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
-
+        if (withDatabaseLogging) {
+            VSATDatabase.bdd_cache_hit(the_query, featureModel, metadata);
+        }
     }
 
     def bdd_record_query(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
-
+        if (withDatabaseLogging) {
+            VSATDatabase.bdd_record_query(the_query, featureModel, metadata);
+        }
     }
 }

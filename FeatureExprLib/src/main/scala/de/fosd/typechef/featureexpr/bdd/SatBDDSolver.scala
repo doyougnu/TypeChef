@@ -83,7 +83,7 @@ object SatSolver {
      * has shown that it can lead to incorrect results,
      * hence caching is currently disabled
      */
-    val CACHING = true // [VSAT BDD] Should we turn that off? -> https://github.com/ckaestne/TypeChef/issues/45
+    val CACHING = true // [VSAT BDD] Should we turn that off? -> https://github.com/ckaestne/TypeChef/issues/45 -> No
 
     def isSatisfiable(featureModel: BDDFeatureModel, dnf: Iterator[Seq[Int]], lookupName: (Int) => String): Boolean = {
         (if (CACHING && (nfm(featureModel) != BDDNoFeatureModel))
