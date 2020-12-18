@@ -143,11 +143,13 @@ object VSATMissionControl {
     }
 
     def hash(fm : SATFeatureModel) : String = {
-        fmhash_javastrhashcode(fm.clauses) + "_" + fmhash_arithmetic(fm.clauses) //+ "_" + runNumber + "_" + fmhash_java(fm)
+        val clauses = (if (fm == null) {SATNoFeatureModel} else {fm}).clauses;
+        fmhash_javastrhashcode(clauses) + "_" + fmhash_arithmetic(clauses) //+ "_" + runNumber + "_" + fmhash_java(fm)
     }
 
     def hash(fm : BDDFeatureModel) : String = {
-        fmhash_javastrhashcode(fm.clauses) + "_" + fmhash_arithmetic(fm.clauses)
+        val clauses = (if (fm == null) {BDDNoFeatureModel} else {fm}).clauses;
+        fmhash_javastrhashcode(clauses) + "_" + fmhash_arithmetic(clauses)
     }
 
     /// Get and Set the VSAT_MODE here
