@@ -285,7 +285,18 @@ object VSATDatabase {
                           AND fmhash = ${satQuery.fmhash}
                           AND mode = ${satQuery.mode};""")
             };
-            case None => throw new Exception("[VSATDatabase.incDbCacheHits] The given query is not stored in the database yet!");
+            case None => {
+                // The given key does not exist in the table.
+                // So maybe, there is an entry with the same formula and featuremodel but a different mode.
+                // We saw that on text based logging:
+                // Lots of queries were made during LEXING and had only cache hits in the later modes.
+                // So instead of throwing an exception (which we will miss in the big text output):
+                // 1.) Get the entries with the same formula and fm (but different mode).
+                // 2.) Get the sentToSAT entry from these rows (should be the same because formula is equal for all).
+                //     (If there is no such entry, we have a crucial bug! Maybe we should write that into an errors table!)
+                // 3.) Create a new entry with the given primary key and the retrieved sentToSAT value.
+                throw new Exception("[VSATDatabase.incDbCacheHits] The given query is not stored in the database yet!")
+            };
         }
     }
 
