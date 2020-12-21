@@ -393,25 +393,4 @@ object VSATDatabase {
             s
         }
     }
-
-
-    /// Test SQL Queries ///
-
-    private def createTestTable() : DBIO[Unit] = {
-        DBIO.seq(sqlu"CREATE TABLE TEST (id int NOT NULL, name varchar(255) NOT NULL);")
-    }
-
-    private def showTestTable() : DBIO[Unit] = {
-        sql"SELECT * FROM TEST".as[(Int, String)].map { persons =>
-            println("Persons:")
-            for((id, name) <- persons)
-                println("* " + id + ", " + name)
-        }
-    }
-
-    private var test_id = 1;
-    private def insertAgentSmithIntoTest(): DBIO[Unit] = {
-        test_id += 1;
-        DBIO.seq(sqlu"INSERT INTO TEST VALUES (${test_id}, 'Agent Smith');")
-    }
 }
