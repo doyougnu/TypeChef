@@ -25,12 +25,14 @@ object VSATDatabase {
     private val satQueriesTableName : String = "SATQUERIES";
     private val bddQueriesTableName : String = "BDDQUERIES";
     private val featureModelsTableName : String = "FEATUREMODELS";
+    private val errorsTableName : String = "ERRORS";
     private val noFeatureModel : String = "NoFeatureModel";
     private val tableLine : String = "----------------------------------------";
 
     // Nor these
     private var running : Boolean = false;
     private var db : Database = null;
+    private var errorCounter : Int = 0;
 
     /// Possible TODO:
     /// Currently, we often wait for futures to complete.
@@ -44,11 +46,14 @@ object VSATDatabase {
             return false
         }
 
+        errorCounter = 0;
+
         db = Database.forConfig(databaseProfileToUse)
 
         setupTable(satQueriesTableName, createSatQueriesTable _);
         setupTable(bddQueriesTableName, createBddQueriesTable _);
         setupTable(featureModelsTableName, createFeatureModelsTable _);
+        setupTable(errorsTableName, createErrorsTable _);
 
         if (VSATMissionControl.DEBUG) {
             runSyncForced(printTableNames());
@@ -231,6 +236,14 @@ object VSATDatabase {
                PRIMARY KEY(hash, fmhash, mode)
                );"""//CONSTRAINT pkey
 
+    private def createErrorsTable() : DBIO[Int] =
+        sqlu"""CREATE TABLE #$errorsTableName (
+               file varchar(255) NOT NULL,
+               no int NOT NULL,
+               message varchar(max) NOT NULL,
+               PRIMARY KEY(file, no)
+               );"""
+
     private def tableExists(tablename : String) : Future[Boolean] = {
         runAsync(sql"""SELECT TABLE_NAME
                FROM INFORMATION_SCHEMA.TABLES
@@ -269,6 +282,12 @@ object VSATDatabase {
 
     /// Functions to insert rows
 
+    private def logError(message : String) : Future[Int] = {
+        val no : Int = errorCounter;
+        errorCounter = errorCounter + 1;
+        runAsync(sqlu"insert into #$errorsTableName values (${VSATMissionControl.getSessionFile}, $no, $message);")
+    }
+
     private def insertSATQuery(q : SATQueryRecord) : DBIO[Int] =
         sqlu"insert into #$satQueriesTableName values (${q.formula}, ${q.fmhash}, ${q.mode}, ${q.tcCacheHits}, ${q.dbCacheHits}, ${q.sentToSAT});"
 
@@ -290,13 +309,13 @@ object VSATDatabase {
                 // 2.) Get the sentToSAT entry from these rows (should be the same because formula is equal for all).
                 // 3.) Create a new entry with the given primary key and the retrieved sentToSAT value.
                 runAsync(insertSATQuery(fromSATPrimaryKey(key, row.sentToSAT)))
-            case None => throw new Exception("[VSATDatabase.insertSATQueryThatWasMadeInDifferentMode] Something is f***** up heavily. The given query is not stored in the database yet!");
+            case None => logError("[VSATDatabase.insertSATQueryThatWasMadeInDifferentMode] The given query is not stored in the database yet!");
         }
 
     private def insertBDDQueryThatWasMadeInDifferentMode(key: BDDQueryPrimaryKey) : Future [Int] =
         getBDDQueryRegardlessOfMode(key).flatMap {
             case Some(row) => runAsync(insertBDDQuery(fromBDDPrimaryKey(key, row.sentToSAT)))
-            case None => throw new Exception("[VSATDatabase.insertBDDQueryThatWasMadeInDifferentMode] Something is f***** up heavily. The given query is not stored in the database yet!");
+            case None => logError("[VSATDatabase.insertBDDQueryThatWasMadeInDifferentMode] The given query is not stored in the database yet!");
         }
 
     /// Functions to update rows

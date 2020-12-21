@@ -38,6 +38,7 @@ object VSATMissionControl {
     val runIndexFile : String = metadatadir + "runno.txt";
     val startRunNumber : Int = 1;
     var runNumber : Int = -1;
+    var sessionFile : String = "";
 
     /**
      * Invoked once on program startup.
@@ -69,11 +70,14 @@ object VSATMissionControl {
 
     def setSessionFile(file : String) : Unit = {
         println("[VSATMissionControl.setSessionFile] to " + file);
+        sessionFile = file;
 
         if (withTextBasedLogging) {
             VSATTextBasedLogger.setSessionFile(file);
         }
     }
+
+    def getSessionFile() : String = sessionFile
 
     def terminate(): Unit = {
         println("[VSATMissionControl.terminate] Mission Completed!");
