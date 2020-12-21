@@ -111,14 +111,12 @@ object VSATDatabase {
 
     /// VSAT logging ///
 
-    def sat_cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit = {
-        //println("[Database.sat_cache_hit]")
+    def sat_cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit =
         incTcCacheHits(
             SATQueryPrimaryKey(
                 the_query.toString,
                 VSATMissionControl.hash(featureModel),
-                VSATMissionControl.getCurrentMode().toString));
-    }
+                VSATMissionControl.getCurrentMode().toString))
 
     def sat_record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean): Unit = {
         // We assume that the given query is not yet stored in the DB
@@ -161,14 +159,12 @@ object VSATDatabase {
         }
     }
 
-    def bdd_cache_hit(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
-//        hashCode
+    def bdd_cache_hit(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit =
         incTcCacheHits(
             BDDQueryPrimaryKey(
                 "" + the_query.hashCode,
                 "nokey_"+VSATMissionControl.hash(featureModel),
-                VSATMissionControl.getCurrentMode().toString));
-    }
+                VSATMissionControl.getCurrentMode().toString))
 
     def bdd_record_query(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
         // ignore the feature mode for now
