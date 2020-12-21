@@ -117,11 +117,11 @@ object VSATDatabase {
     /// VSAT logging ///
 
     def sat_cache_hit(the_query: SATFeatureExpr, featureModel: SATFeatureModel): Unit =
-        incTcCacheHits(
+        tryWait(incTcCacheHits(
             SATQueryPrimaryKey(
                 the_query.toString,
                 VSATMissionControl.hash(featureModel),
-                VSATMissionControl.getCurrentMode().toString))
+                VSATMissionControl.getCurrentMode().toString)))
 
     def sat_record_query(the_query: SATFeatureExpr, featureModel: SATFeatureModel, sentToSat : Boolean): Unit = {
         // We assume that the given query is not yet stored in the DB
@@ -142,7 +142,7 @@ object VSATDatabase {
                 if (VSATMissionControl.DEBUG) {
                     println("[Database.sat_record_query] inserting new feature model " + fmrecord.hash);
                 }
-                runAsync(sqlu"INSERT INTO #$featureModelsTableName VALUES (${fmrecord.hash}, ${fmrecord.formula});");
+                runSafe(sqlu"INSERT INTO #$featureModelsTableName VALUES (${fmrecord.hash}, ${fmrecord.formula});");
             }
         }
 
@@ -152,7 +152,7 @@ object VSATDatabase {
         val existingQuery : Option[SATQueryRecord] = evalForced(getSATQuery(key));
         if (existingQuery.isEmpty) {
             // The default case: This is a new query and we store it
-            runAsync(insertSATQuery(fromSATPrimaryKey(key, sentToSat)));
+            runSafe(insertSATQuery(fromSATPrimaryKey(key, sentToSat)));
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
@@ -165,11 +165,11 @@ object VSATDatabase {
     }
 
     def bdd_cache_hit(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit =
-        incTcCacheHits(
+        tryWait(incTcCacheHits(
             BDDQueryPrimaryKey(
                 "" + the_query.hashCode,
                 "nokey_"+VSATMissionControl.hash(featureModel),
-                VSATMissionControl.getCurrentMode().toString))
+                VSATMissionControl.getCurrentMode().toString)))
 
     def bdd_record_query(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
         // ignore the feature mode for now
@@ -178,7 +178,7 @@ object VSATDatabase {
         val existingQuery : Option[BDDQueryRecord] = evalForced(getBDDQuery(key));
         if (existingQuery.isEmpty) {
             // The default case: This is a new query and we store it
-            runAsync(insertBDDQuery(fromBDDPrimaryKey(key, metadata.sentToSat)));
+            runSafe(insertBDDQuery(fromBDDPrimaryKey(key, metadata.sentToSat)));
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
@@ -192,6 +192,7 @@ object VSATDatabase {
 
     /// Running Database Actions ///
 
+    private def runSafe[T](action : DBIO[T]) : T = tryWait(runAsync(action))
     private def runAsync[T](action : DBIO[T]) : Future[T] = db.run(action)
     private def runSync[T](action : DBIO[T]) : Try[T] = eval(runAsync(action))
     // Like runSync but throws an exception if the action failed
@@ -200,6 +201,17 @@ object VSATDatabase {
     private def eval[T](f : Future[T]) : Try[T] = Await.ready(f, Duration.Inf).value.get
     // like eval but throws an exception when the future fails
     private def evalForced[T](f : Future[T]) : T = Await.result(f, Duration.Inf)
+
+    private def tryWait[T](f : Future[T]) : T = {
+        try {
+            evalForced(f)
+        } catch {
+            case e : Exception => {
+                logError(e.getMessage);
+                throw e
+            };
+        }
+    }
 
 
     /// Create SQL Queries ///
