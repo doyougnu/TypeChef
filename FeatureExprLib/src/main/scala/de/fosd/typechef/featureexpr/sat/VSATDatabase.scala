@@ -32,14 +32,10 @@ object VSATDatabase {
     private var running : Boolean = false;
     private var db : Database = null;
 
-    /// TODO:
+    /// Possible TODO:
     /// Currently, we often wait for futures to complete.
     /// Instead we should use monadic bind to queue new actions asynchronously.
     /// I just wanted to get it working first and fancify it afterwards.
-
-    /// TODO:
-    /// There is lots of clone-and-own in the queries.
-    /// We could try to get rid of that but we dont want to win a price so that's low priority.
 
     def init() : Boolean = {
         println("[VSATDatabase.init]");
@@ -48,14 +44,11 @@ object VSATDatabase {
             return false
         }
 
-        db =
-//            Database.forConfig("h2inmem")
-            Database.forConfig(databaseProfileToUse)
+        db = Database.forConfig(databaseProfileToUse)
 
-
-        setupTable(satQueriesTableName, createSatQueriesTable _, dropSatQueriesTable _);
-        setupTable(bddQueriesTableName, createBddQueriesTable _, dropBddQueriesTable _);
-        setupTable(featureModelsTableName, createFeatureModelsTable _, dropFeatureModelsTable _);
+        setupTable(satQueriesTableName, createSatQueriesTable _);
+        setupTable(bddQueriesTableName, createBddQueriesTable _);
+        setupTable(featureModelsTableName, createFeatureModelsTable _);
 
         if (VSATMissionControl.DEBUG) {
             runSyncForced(printTableNames());
@@ -75,16 +68,16 @@ object VSATDatabase {
         running
     }
 
-    def setupTable(name : String, createTableQuery : () => DBIO[Int], dropTableQuery : () => DBIO[Int]): Unit = {
+    def setupTable(name : String, createTableQuery : () => DBIO[Int]): Unit = {
         // Creating tables synchronously and crash if something fails.
         var exists : Boolean = evalForced(tableExists(name));
         if (exists && VSATMissionControl.isFirstRun()) {
-            println("[VSATDatabase.init] Cleaning existing table " + name + " because this is the first run.");
-            runSyncForced(dropTableQuery());
+            println("[VSATDatabase.setupTable] Cleaning existing table " + name + " because this is the first run.");
+            runSyncForced(dropTable(name));
             exists = false;
         }
         if (!exists) {
-            println("[VSATDatabase.init] Creating table " + name + ".");
+            println("[VSATDatabase.setupTable] Creating table " + name + ".");
             runSyncForced(createTableQuery());
         }
     }
@@ -100,15 +93,21 @@ object VSATDatabase {
     case class SATQueryRecord(formula : String, fmhash : String, mode : String, tcCacheHits : Int, dbCacheHits : Int, sentToSAT : Boolean)
     implicit val getSATQueryRecordResult = GetResult(r => SATQueryRecord(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
 
-    def fromPrimaryKey(k : SATQueryPrimaryKey, sentToSAT : Boolean) : SATQueryRecord =
-        SATQueryRecord(k.formula, k.fmhash, k.mode, 0, 0, sentToSAT)
+    val fromSATPrimaryKey : (SATQueryPrimaryKey, Boolean) => SATQueryRecord =
+        (k, sentToSAT) => SATQueryRecord(k.formula, k.fmhash, k.mode, 0, 0, sentToSAT)
+
+    val toSATPrimaryKey : SATQueryRecord => SATQueryPrimaryKey =
+        s => SATQueryPrimaryKey(s.formula, s.fmhash, s.mode)
 
     case class BDDQueryPrimaryKey(hash : String, fmhash : String, mode : String)
     case class BDDQueryRecord(hash : String, fmhash : String, mode : String, tcCacheHits : Int, dbCacheHits : Int, sentToSAT : Boolean);
     implicit val getBDDQueryRecordResult = GetResult(r => BDDQueryRecord(r.<<, r.<<, r.<<, r.<<, r.<<, r.<<))
 
-    def fromPrimaryKey(k : BDDQueryPrimaryKey, sentToSAT : Boolean) : BDDQueryRecord =
-        BDDQueryRecord(k.hash, k.fmhash, k.mode, 0, 0, sentToSAT)
+    val fromBDDPrimaryKey : (BDDQueryPrimaryKey, Boolean) => BDDQueryRecord =
+        (k, sentToSAT) => BDDQueryRecord(k.hash, k.fmhash, k.mode, 0, 0, sentToSAT)
+
+    val toBDDPrimaryKey : BDDQueryRecord => BDDQueryPrimaryKey =
+        s => BDDQueryPrimaryKey(s.hash, s.fmhash, s.mode)
 
     /// VSAT logging ///
 
@@ -133,14 +132,14 @@ object VSATDatabase {
             //println("[Database.sat_record_query] with SATNoFeatureModel");
             fmHash = noFeatureModel;
         } else {
-            val existingFM : Option[FMRecord] = runSyncForced(sql"SELECT * FROM FEATUREMODELS WHERE hash = $fmHash".as[FMRecord].headOption);
+            val existingFM : Option[FMRecord] = runSyncForced(sql"SELECT * FROM #$featureModelsTableName WHERE hash = $fmHash".as[FMRecord].headOption);
             if (existingFM.isEmpty) {
                 val fmFormula = featureModel.decreate().toString();
                 val fmrecord = FMRecord(fmHash, fmFormula);
                 if (VSATMissionControl.DEBUG) {
                     println("[Database.sat_record_query] inserting new feature model " + fmrecord.hash);
                 }
-                runAsync(sqlu"INSERT INTO FEATUREMODELS VALUES (${fmrecord.hash}, ${fmrecord.formula});");
+                runAsync(sqlu"INSERT INTO #$featureModelsTableName VALUES (${fmrecord.hash}, ${fmrecord.formula});");
             }
         }
 
@@ -150,7 +149,7 @@ object VSATDatabase {
         val existingQuery : Option[SATQueryRecord] = evalForced(getSATQuery(key));
         if (existingQuery.isEmpty) {
             // The default case: This is a new query and we store it
-            runAsync(insertSATQuery(fromPrimaryKey(key, sentToSat)));
+            runAsync(insertSATQuery(fromSATPrimaryKey(key, sentToSat)));
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
@@ -178,7 +177,7 @@ object VSATDatabase {
         val existingQuery : Option[BDDQueryRecord] = evalForced(getBDDQuery(key));
         if (existingQuery.isEmpty) {
             // The default case: This is a new query and we store it
-            runAsync(insertBDDQuery(fromPrimaryKey(key, metadata.sentToSat)));
+            runAsync(insertBDDQuery(fromBDDPrimaryKey(key, metadata.sentToSat)));
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
@@ -190,7 +189,7 @@ object VSATDatabase {
         }
     }
 
-    /// Database utility ///
+    /// Running Database Actions ///
 
     private def runAsync[T](action : DBIO[T]) : Future[T] = db.run(action)
     private def runSync[T](action : DBIO[T]) : Try[T] = eval(runAsync(action))
@@ -202,15 +201,13 @@ object VSATDatabase {
     private def evalForced[T](f : Future[T]) : T = Await.result(f, Duration.Inf)
 
 
-    /// SQL Queries ///
+    /// Create SQL Queries ///
 
-    private def dropSatQueriesTable() : DBIO[Int] = sqlu"DROP TABLE SATQUERIES"
-    private def dropBddQueriesTable() : DBIO[Int] = sqlu"DROP TABLE BDDQUERIES"
-    private def dropFeatureModelsTable() : DBIO[Int] = sqlu"DROP TABLE FEATUREMODELS"
+    private def dropTable(table : String) : DBIO[Int] = sqlu"DROP TABLE #$table"
 
     /// sqlu produces a DBIO[Int] action where the returned int is the row cound (I guess)
     private def createSatQueriesTable() : DBIO[Int] =
-        sqlu"""CREATE TABLE SATQUERIES (
+        sqlu"""CREATE TABLE #$satQueriesTableName (
                formula varchar(max) NOT NULL,
                fmhash varchar(255) NOT NULL,
                mode varchar(50) NOT NULL,
@@ -221,14 +218,14 @@ object VSATDatabase {
                );"""//CONSTRAINT pkey
 
     private def createFeatureModelsTable() : DBIO[Int] =
-        sqlu"""CREATE TABLE FEATUREMODELS (
+        sqlu"""CREATE TABLE #$featureModelsTableName (
                hash varchar(255) NOT NULL,
                formula varchar(max) NOT NULL,
                PRIMARY KEY(hash)
                );"""
     
     private def createBddQueriesTable() : DBIO[Int] =
-        sqlu"""CREATE TABLE BDDQUERIES (
+        sqlu"""CREATE TABLE #$bddQueriesTableName (
                hash varchar(255) NOT NULL,
                fmhash varchar(255) NOT NULL,
                mode varchar(50) NOT NULL,
@@ -246,97 +243,111 @@ object VSATDatabase {
         ).map(o => o.nonEmpty)
     }
 
-    private def getSATQuery(key: SATQueryPrimaryKey) : Future[Option[SATQueryRecord]] =
-        runAsync(sql"SELECT * FROM SATQUERIES WHERE formula = ${key.formula} AND fmhash = ${key.fmhash} AND mode = ${key.mode}".as[SATQueryRecord].headOption)
+    /// Functions to create WHERE statements according to e.g. primary keys
+
+    private val regardlessOfModeSAT : SATQueryPrimaryKey => String
+        = key => "formula = '" + key.formula + "' AND fmhash = '" + key.fmhash + "'";
+
+    private val regardlessOfModeBDD : BDDQueryPrimaryKey => String
+        = key => "hash = '" + key.hash + "' AND fmhash = '" + key.fmhash + "'";
+
+    private val bySATPrimaryKey : SATQueryPrimaryKey => String
+        = key => regardlessOfModeSAT(key) + " AND mode = '" + key.mode + "'"
+
+    private val byBDDPrimaryKey : BDDQueryPrimaryKey => String
+        = key => regardlessOfModeBDD(key) + " AND mode = '" + key.mode + "'"
+
+    /// Functions to get rows
+
+    // This cannot be combined into a single generic function because "as" takes an implicit parameter which does not work with generics
+    private def getRow(tableName : String, key : SATQueryPrimaryKey, identifier : SATQueryPrimaryKey => String) : Future[Option[SATQueryRecord]] =
+        runAsync(sql"SELECT * FROM #$tableName WHERE #${identifier(key)}".as[SATQueryRecord].headOption)
+    private def getRow(tableName : String, key : BDDQueryPrimaryKey, identifier : BDDQueryPrimaryKey => String) : Future[Option[BDDQueryRecord]] =
+        runAsync(sql"SELECT * FROM #$tableName WHERE #${identifier(key)}".as[BDDQueryRecord].headOption)
+
+    private def getSATQuery(key: SATQueryPrimaryKey) : Future[Option[SATQueryRecord]] = getRow(satQueriesTableName, key, bySATPrimaryKey)
+    private def getSATQueryRegardlessOfMode(key: SATQueryPrimaryKey) : Future[Option[SATQueryRecord]] = getRow(satQueriesTableName, key, regardlessOfModeSAT)
+
+    private def getBDDQuery(key: BDDQueryPrimaryKey) : Future[Option[BDDQueryRecord]] = getRow(bddQueriesTableName, key, byBDDPrimaryKey)
+    private def getBDDQueryRegardlessOfMode(key: BDDQueryPrimaryKey) : Future[Option[BDDQueryRecord]] = getRow(bddQueriesTableName, key, regardlessOfModeBDD)
+
+    /// Functions to insert rows
 
     private def insertSATQuery(q : SATQueryRecord) : DBIO[Int] =
-        sqlu"insert into SATQUERIES values (${q.formula}, ${q.fmhash}, ${q.mode}, ${q.tcCacheHits}, ${q.dbCacheHits}, ${q.sentToSAT});"
-
-    private def getBDDQuery(key: BDDQueryPrimaryKey) : Future[Option[BDDQueryRecord]] =
-        runAsync(sql"SELECT * FROM BDDQUERIES WHERE hash = ${key.hash} AND fmhash = ${key.fmhash} AND mode = ${key.mode}".as[BDDQueryRecord].headOption)
+        sqlu"insert into #$satQueriesTableName values (${q.formula}, ${q.fmhash}, ${q.mode}, ${q.tcCacheHits}, ${q.dbCacheHits}, ${q.sentToSAT});"
 
     private def insertBDDQuery(q : BDDQueryRecord) : DBIO[Int] =
-        sqlu"insert into BDDQUERIES values (${q.hash}, ${q.fmhash}, ${q.mode}, ${q.tcCacheHits}, ${q.dbCacheHits}, ${q.sentToSAT});"
+        sqlu"insert into #$bddQueriesTableName values (${q.hash}, ${q.fmhash}, ${q.mode}, ${q.tcCacheHits}, ${q.dbCacheHits}, ${q.sentToSAT});"
 
-    private def incTcCacheHits(key: SATQueryPrimaryKey) : Future[Int] = {
-        getSATQuery(key).flatMap {
-            case Some(satQuery) => {
-                val newTcCacheHits = 1 + satQuery.tcCacheHits;
-                runAsync(
-                    sqlu"""UPDATE SATQUERIES
-                          SET tcCacheHits=$newTcCacheHits
-                          WHERE formula = ${satQuery.formula}
-                          AND fmhash = ${satQuery.fmhash}
-                          AND mode = ${satQuery.mode};""")
-            };
-            case None => throw new Exception("[VSATDatabase.incTcCacheHits] The given query is not stored in the database yet!");
-        }
-    }
-
-    // #clone-and-own
-    private def incDbCacheHits(key: SATQueryPrimaryKey) : Future[Int] = {
-        getSATQuery(key).flatMap {
-            case Some(satQuery) => {
-                val newDbCacheHits = 1 + satQuery.dbCacheHits;
-                runAsync(
-                    sqlu"""UPDATE SATQUERIES
-                          SET dbCacheHits=$newDbCacheHits
-                          WHERE formula = ${satQuery.formula}
-                          AND fmhash = ${satQuery.fmhash}
-                          AND mode = ${satQuery.mode};""")
-            };
-            case None => {
-                // The given key does not exist in the table.
-                // So maybe, there is an entry with the same formula and featuremodel but a different mode.
-                // We saw that on text based logging:
-                // Lots of queries were made during LEXING and had only cache hits in the later modes.
-                // So instead of throwing an exception (which we will miss in the big text output):
-                // 1.) Get the entries with the same formula and fm (but different mode).
+    // Invoked when the given key does not exist in the table but should do so.
+    // This happens when we have a tcCacheHit but the row does not exist.
+    // This can happen because the initial query was made in another mode (which is part of the primary key).
+    // Maybe, there is an entry with the same formula and featuremodel but a different mode.
+    // We saw that on text based logging:
+    // Lots of queries were made during LEXING and had only cache hits in the later modes.
+    // So instead of throwing an exception (which we will miss in the big text output):
+    private def insertSATQueryThatWasMadeInDifferentMode(key: SATQueryPrimaryKey) : Future [Int] =
+    // 1.) Get the entries with the same formula and fm (but different mode).
+    //     (If there is no such entry, we have a crucial bug! Maybe we should write that into an errors table!)
+        getSATQueryRegardlessOfMode(key).flatMap {
+            case Some(row) =>
                 // 2.) Get the sentToSAT entry from these rows (should be the same because formula is equal for all).
-                //     (If there is no such entry, we have a crucial bug! Maybe we should write that into an errors table!)
                 // 3.) Create a new entry with the given primary key and the retrieved sentToSAT value.
-                throw new Exception("[VSATDatabase.incDbCacheHits] The given query is not stored in the database yet!")
-            };
+                runAsync(insertSATQuery(fromSATPrimaryKey(key, row.sentToSAT)))
+            case None => throw new Exception("[VSATDatabase.insertSATQueryThatWasMadeInDifferentMode] Something is f***** up heavily. The given query is not stored in the database yet!");
         }
-    }
 
-    private def incTcCacheHits(key: BDDQueryPrimaryKey) : Future[Int] = {
-        getBDDQuery(key).flatMap {
-            case Some(bddQuery) => {
-                val newTcCacheHits = 1 + bddQuery.tcCacheHits;
-                runAsync(
-                    sqlu"""UPDATE BDDQUERIES
-                          SET tcCacheHits=$newTcCacheHits
-                          WHERE hash = ${bddQuery.hash}
-                          AND fmhash = ${bddQuery.fmhash}
-                          AND mode = ${bddQuery.mode};""")
-            };
-            case None => throw new Exception("[VSATDatabase.incTcCacheHits] The given query is not stored in the database yet!");
+    private def insertBDDQueryThatWasMadeInDifferentMode(key: BDDQueryPrimaryKey) : Future [Int] =
+        getBDDQueryRegardlessOfMode(key).flatMap {
+            case Some(row) => runAsync(insertBDDQuery(fromBDDPrimaryKey(key, row.sentToSAT)))
+            case None => throw new Exception("[VSATDatabase.insertBDDQueryThatWasMadeInDifferentMode] Something is f***** up heavily. The given query is not stored in the database yet!");
         }
-    }
 
-    // #clone-and-own
-    private def incDbCacheHits(key: BDDQueryPrimaryKey) : Future[Int] = {
-        getBDDQuery(key).flatMap {
-            case Some(bddQuery) => {
-                val newDbCacheHits = 1 + bddQuery.dbCacheHits;
-                runAsync(
-                    sqlu"""UPDATE BDDQUERIES
-                          SET dbCacheHits=$newDbCacheHits
-                          WHERE hash = ${bddQuery.hash}
-                          AND fmhash = ${bddQuery.fmhash}
-                          AND mode = ${bddQuery.mode};""")
+    /// Functions to update rows
+
+    private def updateAttribute[T, U](element : Future[Option[T]], tableName : String, identifier : T => String,
+                                      attribName : String, update : T => U, errorCase : Future[Int]) : Future[Int] =
+        element.flatMap {
+            case Some(row) => {
+                val location : String = identifier(row);
+                val newAttribVal : String = update(row).toString;
+                runAsync(sqlu"UPDATE #$tableName SET #$attribName = $newAttribVal WHERE #$location ;")
             };
-            case None => throw new Exception("[VSATDatabase.incDbCacheHits] The given query is not stored in the database yet!");
+            case None => errorCase;
         }
-    }
+
+    private def updateSATAttribute[U](key: SATQueryPrimaryKey, attribName : String, update : SATQueryRecord => U, errorCase : Future[Int]) : Future[Int] =
+        updateAttribute(getSATQuery(key), satQueriesTableName, bySATPrimaryKey compose toSATPrimaryKey,
+            attribName, update, errorCase)
+
+    private def updateBDDAttribute[U](key: BDDQueryPrimaryKey, attribName : String, update : BDDQueryRecord => U, errorCase : Future[Int]) : Future[Int] =
+        updateAttribute(getBDDQuery(key), bddQueriesTableName, byBDDPrimaryKey compose toBDDPrimaryKey,
+            attribName, update, errorCase)
+
+    /// cache hit counters
+
+    private def incTcCacheHits(key: SATQueryPrimaryKey) : Future[Int] =
+        updateSATAttribute(key, "tcCacheHits", (s : SATQueryRecord) => 1 + s.tcCacheHits,
+            insertSATQueryThatWasMadeInDifferentMode(key))
+
+    private def incDbCacheHits(key: SATQueryPrimaryKey) : Future[Int] =
+        updateSATAttribute(key, "dbCacheHits", (s : SATQueryRecord) => 1 + s.dbCacheHits,
+            insertSATQueryThatWasMadeInDifferentMode(key))
+
+    private def incTcCacheHits(key: BDDQueryPrimaryKey) : Future[Int] =
+        updateBDDAttribute(key, "tcCacheHits", (b : BDDQueryRecord) => 1 + b.tcCacheHits,
+            insertBDDQueryThatWasMadeInDifferentMode(key))
+
+    private def incDbCacheHits(key: BDDQueryPrimaryKey) : Future[Int] =
+        updateBDDAttribute(key, "dbCacheHits", (b : BDDQueryRecord) => 1 + b.dbCacheHits,
+            insertBDDQueryThatWasMadeInDifferentMode(key))
 
 
     /// Debug SQL Queries ///
 
     private def showSatQueriesTable() : DBIO[Unit] = {
         val sep = " | ";
-        sql"SELECT * FROM SATQUERIES".as[SATQueryRecord].map { satqueries =>
+        sql"SELECT * FROM #$satQueriesTableName".as[SATQueryRecord].map { satqueries =>
             println("[VSATDatabase.showSatQueriesTable] SAT_QUERIES:")
             println(tableLine)
             println("  formula"+sep+"fmhash"+sep+"mode"+sep+"cacheHits"+sep+"sentToSAT")
@@ -349,7 +360,7 @@ object VSATDatabase {
 
     private def showFeatureModelsTable() : DBIO[Unit] = {
         val sep = " | ";
-        sql"SELECT * FROM FEATUREMODELS".as[FMRecord].map { fms =>
+        sql"SELECT * FROM #$featureModelsTableName".as[FMRecord].map { fms =>
             println("[VSATDatabase.showFeatureModelsTable] FEATURE_MODELS:")
             println(tableLine)
             println("  hash"+sep+"formula")
