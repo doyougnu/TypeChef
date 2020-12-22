@@ -166,7 +166,7 @@ object VSATDatabase {
         tryWait(incTcCacheHits(
             BDDQueryPrimaryKey(
                 "" + the_query.hashCode,
-                "nokey_"+VSATMissionControl.hash(featureModel),
+                VSATMissionControl.hash(featureModel),
                 VSATMissionControl.getCurrentMode().toString)))
 
     def bdd_record_query(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
