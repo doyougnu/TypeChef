@@ -23,6 +23,8 @@ import de.fosd.typechef.featureexpr.sat.VSATMissionControl
 object Frontend extends EnforceTreeHelper {
 
     def main(args: Array[String]) {
+        // [VSAT] By inspecting jcpp.sh, we found that the current file will always be the last argument.
+        VSATMissionControl.setSessionFile(args(args.length - 1));
         VSATMissionControl.init();
 //      vsat_clean_env()
       //vsat_initialise_cache_file()
@@ -51,8 +53,6 @@ object Frontend extends EnforceTreeHelper {
                 return
         }
         VSATMissionControl.cleanCurrentMode();
-
-        VSATMissionControl.setSessionFile(opt.getSerializedASTFilename());
         processFile(opt)
         VSATMissionControl.terminate();
     }
@@ -268,6 +268,7 @@ object Frontend extends EnforceTreeHelper {
         opt.setRenderParserError(errorXML.renderParserError)
 
         val stopWatch = new StopWatch()
+        VSATMissionControl.setCurrentMode(VSATMode.LoadFM);
         stopWatch.start("loadFM")
 
  // println("[VSAT]: Feature Model Stuff!!!!! ")
@@ -277,6 +278,8 @@ object Frontend extends EnforceTreeHelper {
         opt.setSmallFeatureModel(smallFM) //otherwise the lexer does not get the updated feature model with file presence conditions
         val fullFM = opt.getFullFeatureModel.and(opt.getLocalFeatureModel).and(opt.getFilePresenceCondition)
         opt.setFullFeatureModel(fullFM) // should probably be fixed in how options are read
+
+        VSATMissionControl.cleanCurrentMode();
 
 
  // have to wrap this in a val because scala can't do ((f .) . g) apparently?
@@ -305,8 +308,10 @@ object Frontend extends EnforceTreeHelper {
             return
         }
 
+
         var ast: TranslationUnit = null
         if (opt.reuseAST && opt.parse && new File(opt.getSerializedASTFilename).exists()) {
+            VSATMissionControl.setCurrentMode(VSATMode.LoadAST);
             println("loading AST.")
             try {
             ast = loadSerializedAST(opt.getSerializedASTFilename)
@@ -316,6 +321,7 @@ object Frontend extends EnforceTreeHelper {
             }
             if (ast == null)
                 println("... failed reading AST\n")
+            VSATMissionControl.cleanCurrentMode();
         }
 
 // [VSAT]: Jeff and Paul: log the feature models from the options
@@ -323,22 +329,18 @@ object Frontend extends EnforceTreeHelper {
 // smallFM.exportFM2DNF(smallFM, "SmallFeatureModels.txt")
 
 
-        stopWatch.start("lexing")
-//  vsat_set_mode("LEXING")
         VSATMissionControl.setCurrentMode(VSATMode.Lexing);
+        stopWatch.start("lexing")
         //no parsing if read serialized ast
         val in = if (ast == null) {
             println("#lexing")
             lex(opt)
         } else null
-
-//        vsat_clean_mode()
         VSATMissionControl.cleanCurrentMode();
 
         if (opt.parse) {
-            println("#parsing")
-//  vsat_set_mode("PARSING") // [VSAT]: Set env variable to indicate parsing queries
             VSATMissionControl.setCurrentMode(VSATMode.Parsing);
+            println("#parsing")
             stopWatch.start("parsing")
 
           // [VSAT]: Jeff and Paul: Parsing begins after lexing of course. Here
@@ -352,6 +354,7 @@ object Frontend extends EnforceTreeHelper {
                 // checkPositionInformation(ast)
 
                 if (ast != null && opt.serializeAST) {
+                    VSATMissionControl.setCurrentMode(VSATMode.Serialize);
                     stopWatch.start("serialize")
                     serializeAST(ast, opt.getSerializedASTFilename)
                 }
@@ -364,13 +367,13 @@ object Frontend extends EnforceTreeHelper {
             if (ast != null) {
 
               // [VSAT]: Jeff and Paul: Typechecking begins
-//  vsat_set_mode("TYPE_CHECKING")
-                VSATMissionControl.setCurrentMode(VSATMode.TypeChecking);
                 // some dataflow analyses require typing information
+                VSATMissionControl.setCurrentMode(VSATMode.TypeSystemInit);
                 val ts = if (opt.typechecksa)
                             new CTypeSystemFrontend(ast, fullFM, opt) with CTypeCache with CDeclUse
                          else
                             new CTypeSystemFrontend(ast, fullFM, opt)
+                VSATMissionControl.cleanCurrentMode();
 
 
                 /** I did some experiments with the TypeChef FeatureModel of Linux, in case I need the routines again, they are saved here. */
@@ -381,21 +384,27 @@ object Frontend extends EnforceTreeHelper {
                     //logMessage=("Time for lexing(ms): " + (t2-t1) + "\nTime for parsing(ms): " + (t3-t2) + "\n"))
                     //ProductGeneration.estimateNumberOfVariants(ast, fm_ts)
 
+                    VSATMissionControl.setCurrentMode(VSATMode.TypeChecking);
                     stopWatch.start("typechecking")
                     println("#type checking")
                     ts.checkAST(printResults = true)
                     ts.errors.map(errorXML.renderTypeError)
                 }
+                VSATMissionControl.cleanCurrentMode();
                 if (opt.writeInterface) {
+                    VSATMissionControl.setCurrentMode(VSATMode.Interfaces);
                     stopWatch.start("interfaces")
                     val interface = ts.getInferredInterface().and(opt.getFilePresenceCondition)
 
+                    VSATMissionControl.setCurrentMode(VSATMode.WriteInterfaces);
                     stopWatch.start("writeInterfaces")
                     ts.writeInterface(interface, new File(opt.getInterfaceFilename))
                     if (opt.writeDebugInterface)
                         ts.debugInterface(interface, new File(opt.getDebugInterfaceFilename))
                 }
+                VSATMissionControl.cleanCurrentMode();
                 if (opt.dumpcfg) {
+                    VSATMissionControl.setCurrentMode(VSATMode.CallGraph);
                     println("#call graph")
                     stopWatch.start("dumpCFG")
 
@@ -405,9 +414,11 @@ object Frontend extends EnforceTreeHelper {
                     val dotwriter = new DotGraph(new FileWriter(new File(opt.getCCFGDotFilename)))
                     cf.writeCFG(opt.getFile, new ComposedWriter(List(dotwriter, writer)))
                 }
+                VSATMissionControl.cleanCurrentMode();
 
               // [VSAT]: Jeff and Paul: Static Analysis begins
                 if (opt.staticanalyses) {
+                    VSATMissionControl.setCurrentMode(VSATMode.StaticAnalysis);
                     println("#static analysis")
                     val sa = new CIntraAnalysisFrontend(ast, ts.asInstanceOf[CTypeSystemFrontend with CTypeCache with CDeclUse], fullFM)
                     if (opt.warning_double_free) {
@@ -443,7 +454,7 @@ object Frontend extends EnforceTreeHelper {
                         sa.deadStore()
                     }
                 }
-
+                VSATMissionControl.cleanCurrentMode();
             }
 
         }
