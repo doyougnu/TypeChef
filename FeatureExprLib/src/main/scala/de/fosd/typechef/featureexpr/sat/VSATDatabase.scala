@@ -8,6 +8,8 @@ import slick.jdbc.H2Profile.api._
 
 //import scala.slick.driver.H2Driver.simple._
 
+import java.io.{PrintWriter, StringWriter}
+
 import scala.concurrent.{Future, Await}
 import scala.util.{Success,Failure,Try}
 import scala.concurrent.duration.Duration
@@ -253,6 +255,7 @@ object VSATDatabase {
                file varchar(255) NOT NULL,
                no int NOT NULL,
                message varchar(max) NOT NULL,
+               stacktrace varchar(max),
                PRIMARY KEY(file, no)
                );"""
 
@@ -297,7 +300,11 @@ object VSATDatabase {
     private def logError(message : String) : Future[Int] = {
         val no : Int = errorCounter;
         errorCounter = errorCounter + 1;
-        runAsync(sqlu"insert into #$errorsTableName values (${VSATMissionControl.getSessionFile}, $no, $message);")
+
+        val sw = new StringWriter;
+        (new Throwable()).printStackTrace(new PrintWriter(sw));
+
+        runAsync(sqlu"insert into #$errorsTableName values (${VSATMissionControl.getSessionFile}, $no, $message, ${sw.toString});")
     }
 
     private def insertSATQuery(q : SATQueryRecord) : DBIO[Int] =
