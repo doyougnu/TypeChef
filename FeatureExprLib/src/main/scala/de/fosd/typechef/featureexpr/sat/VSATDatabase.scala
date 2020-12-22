@@ -28,7 +28,6 @@ object VSATDatabase {
     private val bddQueriesTableName : String = "BDDQUERIES";
     private val featureModelsTableName : String = "FEATUREMODELS";
     private val errorsTableName : String = "ERRORS";
-    private val noFeatureModel : String = "NoFeatureModel";
     private val tableLine : String = "----------------------------------------";
 
     // Nor these
@@ -133,10 +132,7 @@ object VSATDatabase {
 
         // 1.) Store FM if not stored already
         var fmHash : String = VSATMissionControl.hash(featureModel)
-        if (featureModel == SATNoFeatureModel) {
-            //println("[Database.sat_record_query] with SATNoFeatureModel");
-            fmHash = noFeatureModel;
-        } else {
+        if (featureModel != SATNoFeatureModel) {
             val existingFM : Option[FMRecord] = runSyncForced(sql"SELECT * FROM #$featureModelsTableName WHERE hash = $fmHash".as[FMRecord].headOption);
             if (existingFM.isEmpty) {
                 val fmFormula = featureModel.decreate().toString();
@@ -320,7 +316,7 @@ object VSATDatabase {
     // We saw that on text based logging:
     // Lots of queries were made during LEXING and had only cache hits in the later modes.
     // So instead of throwing an exception (which we will miss in the big text output):
-    private def insertSATQueryThatWasMadeInDifferentMode(key: SATQueryPrimaryKey) : Future [Int] =
+    private def insertSATQueryThatWeSawPreviouslyInAnotherMode(key: SATQueryPrimaryKey) : Future [Int] =
     // 1.) Get the entries with the same formula and fm (but different mode).
     //     (If there is no such entry, we have a crucial bug! Maybe we should write that into an errors table!)
         getSATQueryRegardlessOfMode(key).flatMap {
@@ -328,13 +324,13 @@ object VSATDatabase {
                 // 2.) Get the sentToSAT entry from these rows (should be the same because formula is equal for all).
                 // 3.) Create a new entry with the given primary key and the retrieved sentToSAT value.
                 runAsync(insertSATQuery(fromSATPrimaryKey(key, row.sentToSAT)))
-            case None => logError("[VSATDatabase.insertSATQueryThatWasMadeInDifferentMode] The given query is not stored in the database yet!");
+            case None => logError("SAT query [" + key + "] is not stored in the database yet!");
         }
 
-    private def insertBDDQueryThatWasMadeInDifferentMode(key: BDDQueryPrimaryKey) : Future [Int] =
+    private def insertBDDQueryThatWeSawPreviouslyInAnotherMode(key: BDDQueryPrimaryKey) : Future [Int] =
         getBDDQueryRegardlessOfMode(key).flatMap {
             case Some(row) => runAsync(insertBDDQuery(fromBDDPrimaryKey(key, row.sentToSAT)))
-            case None => logError("[VSATDatabase.insertBDDQueryThatWasMadeInDifferentMode] The given query is not stored in the database yet!");
+            case None => logError("BDD query [" + key + "] is not stored in the database yet!");
         }
 
     /// Functions to update rows
@@ -362,19 +358,19 @@ object VSATDatabase {
 
     private def incTcCacheHits(key: SATQueryPrimaryKey) : Future[Int] =
         updateSATAttribute(key, "tcCacheHits", (s : SATQueryRecord) => 1 + s.tcCacheHits,
-            insertSATQueryThatWasMadeInDifferentMode(key))
+            insertSATQueryThatWeSawPreviouslyInAnotherMode(key))
 
     private def incDbCacheHits(key: SATQueryPrimaryKey) : Future[Int] =
         updateSATAttribute(key, "dbCacheHits", (s : SATQueryRecord) => 1 + s.dbCacheHits,
-            insertSATQueryThatWasMadeInDifferentMode(key))
+            insertSATQueryThatWeSawPreviouslyInAnotherMode(key))
 
     private def incTcCacheHits(key: BDDQueryPrimaryKey) : Future[Int] =
         updateBDDAttribute(key, "tcCacheHits", (b : BDDQueryRecord) => 1 + b.tcCacheHits,
-            insertBDDQueryThatWasMadeInDifferentMode(key))
+            insertBDDQueryThatWeSawPreviouslyInAnotherMode(key))
 
     private def incDbCacheHits(key: BDDQueryPrimaryKey) : Future[Int] =
         updateBDDAttribute(key, "dbCacheHits", (b : BDDQueryRecord) => 1 + b.dbCacheHits,
-            insertBDDQueryThatWasMadeInDifferentMode(key))
+            insertBDDQueryThatWeSawPreviouslyInAnotherMode(key))
 
 
     /// Debug SQL Queries ///

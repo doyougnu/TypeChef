@@ -34,6 +34,7 @@ object VSATMissionControl {
 
     /// Do not touch these
     private var currentMode : VSATMode = VSATMode.Unknown;
+    private val noFeatureModelHash : String = "NoFM";
     var metadatadir : String = "./VSAT_metadata/"
     val runIndexFile : String = metadatadir + "runno.txt";
     val startRunNumber : Int = 1;
@@ -147,13 +148,21 @@ object VSATMissionControl {
     }
 
     def hash(fm : SATFeatureModel) : String = {
-        val clauses = (if (fm == null) {SATNoFeatureModel} else {fm}).clauses;
-        fmhash_javastrhashcode(clauses) + "_" + fmhash_arithmetic(clauses) //+ "_" + runNumber + "_" + fmhash_java(fm)
+        if (fm == null || fm == SATNoFeatureModel) {
+            noFeatureModelHash
+        } else {
+            val clauses = fm.clauses;
+            fmhash_javastrhashcode(clauses) + "_" + fmhash_arithmetic(clauses) //+ "_" + runNumber + "_" + fmhash_java(fm)
+        }
     }
 
     def hash(fm : BDDFeatureModel) : String = {
-        val clauses = (if (fm == null) {BDDNoFeatureModel} else {fm}).clauses;
-        fmhash_javastrhashcode(clauses) + "_" + fmhash_arithmetic(clauses)
+        if (fm == null || fm == BDDNoFeatureModel) {
+            noFeatureModelHash
+        } else {
+            val clauses = fm.clauses;
+            fmhash_javastrhashcode(clauses) + "_" + fmhash_arithmetic(clauses)
+        }
     }
 
     /// Get and Set the VSAT_MODE here
