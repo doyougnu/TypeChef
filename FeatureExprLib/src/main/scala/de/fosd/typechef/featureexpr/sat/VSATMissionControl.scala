@@ -21,12 +21,6 @@ case class VSATBDDQueryMetadata(
 object VSATMissionControl {
     import VSATMode._
 
-    /**
-     * TODO for Paul:
-     * - Count queries on BDDs
-     * - See if we have a server where we can run the linux analysis.
-     */
-
     /// Configure the logging here.
     private val withTextBasedLogging : Boolean = false;
     private val withDatabaseLogging : Boolean = true;
@@ -35,6 +29,7 @@ object VSATMissionControl {
     /// Do not touch these
     private var currentMode : VSATMode = VSATMode.Unknown;
     private val noFeatureModelHash : String = "NoFM";
+    private val noSessionFile : String = "None";
     var metadatadir : String = "./VSAT_metadata/"
     val runIndexFile : String = metadatadir + "runno.txt";
     val startRunNumber : Int = 1;
@@ -52,7 +47,9 @@ object VSATMissionControl {
         runNumber = startRunNumber;
         Files.createDirectories(Paths.get(metadatadir));
         if (Files.exists(Paths.get(runIndexFile))) {
-            runNumber = 1 + Source.fromFile(runIndexFile).mkString.toInt;
+            val source = Source.fromFile(runIndexFile);
+            runNumber = 1 + source.mkString.toInt;
+            source.close();
         }
         val output = new BufferedWriter(new FileWriter(runIndexFile, false));
         output.write("" + runNumber);
@@ -78,7 +75,13 @@ object VSATMissionControl {
         }
     }
 
-    def getSessionFile() : String = sessionFile
+    def getSessionFile: String = {
+        if (sessionFile.isEmpty) {
+            noSessionFile
+        } else {
+            sessionFile
+        }
+    }
 
     def terminate(): Unit = {
         println("[VSATMissionControl.terminate] Mission Completed!");
@@ -90,7 +93,7 @@ object VSATMissionControl {
         }
     }
 
-    def isFirstRun() : Boolean = startRunNumber == runNumber;
+    def isFirstRun: Boolean = startRunNumber == runNumber;
 
     /// Hashing of Feature Models
 
@@ -176,7 +179,7 @@ object VSATMissionControl {
         setCurrentMode(VSATMode.Unknown)
     }
 
-    def getCurrentMode() : VSATMode = { currentMode }
+    def getCurrentMode: VSATMode = { currentMode }
 
     /// Query Logging from here
 
