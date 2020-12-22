@@ -171,7 +171,10 @@ object VSATDatabase {
 
     def bdd_record_query(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
         // ignore the feature mode for now
-        val key = BDDQueryPrimaryKey("" + the_query.hashCode, "nokey_"+VSATMissionControl.hash(featureModel), VSATMissionControl.getCurrentMode().toString)
+        val key = BDDQueryPrimaryKey(
+            "" + the_query.hashCode,
+            VSATMissionControl.hash(featureModel),
+            VSATMissionControl.getCurrentMode().toString)
 
         val existingQuery : Option[BDDQueryRecord] = evalForced(getBDDQuery(key));
         if (existingQuery.isEmpty) {
