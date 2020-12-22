@@ -75,7 +75,7 @@ object VSATMissionControl {
         }
     }
 
-    def getSessionFile: String = {
+    def getSessionFile(): String = {
         if (sessionFile.isEmpty) {
             noSessionFile
         } else {
@@ -93,7 +93,7 @@ object VSATMissionControl {
         }
     }
 
-    def isFirstRun: Boolean = startRunNumber == runNumber;
+    def isFirstRun(): Boolean = startRunNumber == runNumber;
 
     /// Hashing of Feature Models
 
@@ -179,7 +179,7 @@ object VSATMissionControl {
         setCurrentMode(VSATMode.Unknown)
     }
 
-    def getCurrentMode: VSATMode = { currentMode }
+    def getCurrentMode() : VSATMode = { currentMode }
 
     /// Query Logging from here
 
