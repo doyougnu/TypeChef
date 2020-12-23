@@ -157,10 +157,7 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
         val fm = asBDDFeatureModel(f)
 
         var sentToSAT = false
-        // We consider it a cache hit when TypeChef can immediately return the result
-        // because it is even more easy for TypeChef to return the result in these cases directly
-        // than caching it at all.
-        var cacheHit = true
+        var cacheHit = false
 
         val result = {
             if (bdd.isOne) true //assuming a valid feature model
@@ -171,6 +168,7 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
             //combination with SAT
             else {
                 sentToSAT = true
+                cacheHit = true
                 FeatureExprHelper.cacheIsSatisfiable.getOrElseUpdate((this.bdd, fm),
                     {
                         cacheHit = false;

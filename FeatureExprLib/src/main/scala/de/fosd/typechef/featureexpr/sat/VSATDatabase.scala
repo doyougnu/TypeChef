@@ -287,6 +287,13 @@ object VSATDatabase {
         if (existingQuery.isEmpty) {
             // The default case: This is a new query and we store it
             runSafe(insertBDDQuery(fromBDDPrimaryKey(key, metadata.sentToSat)));
+        } else if (!metadata.sentToSat) {
+            // If the query was not sent to the sat solver but is not a cache hit
+            // then it could be answered by typechef directly (before looking into the cache).
+            // (This is implemented differently from SATFeatureExpr.)
+            // Some BDD queries are so simple for typechef that they are not even cached but immediately answered.
+            // We consider that a cache hit then because it was even simpler than caching.
+            bdd_cache_hit(the_query, featureModel, metadata);
         } else {
             // Surprising case: TypeChef told us to record a new query but we actually have a cache hit!
             // Such a cache hit remains unobserved by TypeChef.
