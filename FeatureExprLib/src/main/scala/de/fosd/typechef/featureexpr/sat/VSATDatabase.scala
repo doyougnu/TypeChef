@@ -259,15 +259,23 @@ object VSATDatabase {
         }
     }
 
-    def bdd_cache_hit(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit =
+    def bdd_cache_hit(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
+        if (VSATMissionControl.DEBUG) {
+            println("[VSATDatabase.bdd_cache_hit] from " + metadata.origin)
+        }
         tryWait(incTcCacheHits(
             BDDQueryPrimaryKey(
                 "" + the_query.hashCode,
                 VSATMissionControl.hash(featureModel),
                 VSATMissionControl.getSessionFile(),
                 VSATMissionControl.getCurrentMode().toString)))
+    }
 
     def bdd_record_query(the_query: BDDFeatureExpr, featureModel: BDDFeatureModel, metadata : VSATBDDQueryMetadata) : Unit = {
+        if (VSATMissionControl.DEBUG) {
+            println("[VSATDatabase.bdd_record_query] from " + metadata.origin)
+        }
+
         // ignore the feature mode for now
         val key = BDDQueryPrimaryKey(
             "" + the_query.hashCode,

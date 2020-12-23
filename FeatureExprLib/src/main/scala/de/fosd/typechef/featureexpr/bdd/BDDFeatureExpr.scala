@@ -130,40 +130,12 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
      * x.isSatisfiable(fm) is short for x.and(fm).isSatisfiable
      * but is faster because FM is cached
      */
-    def isSatisfiable(f: FeatureModel): Boolean = FExprBuilder.synchronized {
-        val fm = asBDDFeatureModel(f)
-
-        var sentToSAT = false;
-        var cacheHit = false;
-
-        val result = {
-            if (bdd.isOne) true //assuming a valid feature model
-            else if (bdd.isZero) false
-            else if (fm == BDDNoFeatureModel || fm == null) bdd.satOne() != FExprBuilder.FALSE
-            //combination with a small FeatureExpr feature model
-            else if (fm.clauses.isEmpty) (bdd and fm.extraConstraints.bdd and fm.assumptions.bdd).satOne() != FExprBuilder.FALSE
-            //combination with SAT
-            else {
-                sentToSAT = true;
-                cacheHit = true;
-                FeatureExprHelper.cacheIsSatisfiable.getOrElseUpdate((this.bdd, fm),
-                    {
-                        cacheHit = false;
-                        SatSolver.isSatisfiable(fm, toDnfClauses(toScalaAllSat((bdd and fm.extraConstraints.bdd).not().allsat())), FExprBuilder.lookupFeatureName)
-                    }
-                )
-            }
-        }
-
-        val metadata = new VSATBDDQueryMetadata(sentToSAT);
-        if (cacheHit) {
-            VSATMissionControl.bdd_cache_hit(this, fm, metadata);
-        } else if (!sentToSAT) { // if sentToSAT then the SatSolver invokes bdd_record_query already
-            VSATMissionControl.bdd_record_query(this, fm, metadata);
-        }
-
-        result
-    }
+    def isSatisfiable(f: FeatureModel): Boolean =
+        vsat_issatisfiable(
+            f,
+            "BDDFeatureExpr.isSatisfiable",
+            (bdd, fm) => SatSolver.isSatisfiable(fm, toDnfClauses(toScalaAllSat((bdd and fm.extraConstraints.bdd).not().allsat())), FExprBuilder.lookupFeatureName)
+        )
 
     /**
      * alternative implementation of issatisfiable that uses a different CNF conversion
@@ -171,11 +143,24 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
      *
      * the difference is only relevant when dimacs-feature models are involved
      */
-    def isSatisfiable2(f: FeatureModel): Boolean = FExprBuilder.synchronized {
+    def isSatisfiable2(f: FeatureModel): Boolean =
+        vsat_issatisfiable(
+            f,
+            "BDDFeatureExpr.isSatisfiable2",
+            (bdd, fm) => SatSolver.isSatisfiable(fm, toCNFClauses((bdd and fm.extraConstraints.bdd)), FExprBuilder.lookupFeatureName)
+        )
+
+    private def vsat_issatisfiable(
+                                      f: FeatureModel,
+                                      origin : String,
+                                      sat : (BDD, BDDFeatureModel) => Boolean): Boolean = FExprBuilder.synchronized {
         val fm = asBDDFeatureModel(f)
 
-        var sentToSAT = false;
-        var cacheHit = false;
+        var sentToSAT = false
+        // We consider it a cache hit when TypeChef can immediately return the result
+        // because it is even more easy for TypeChef to return the result in these cases directly
+        // than caching it at all.
+        var cacheHit = true
 
         val result = {
             if (bdd.isOne) true //assuming a valid feature model
@@ -185,18 +170,17 @@ class BDDFeatureExpr(private[featureexpr] val bdd: BDD) extends FeatureExpr {
             else if (fm.clauses.isEmpty) (bdd and fm.extraConstraints.bdd and fm.assumptions.bdd).satOne() != FExprBuilder.FALSE
             //combination with SAT
             else {
-                sentToSAT = true;
-                cacheHit = true;
+                sentToSAT = true
                 FeatureExprHelper.cacheIsSatisfiable.getOrElseUpdate((this.bdd, fm),
                     {
                         cacheHit = false;
-                        SatSolver.isSatisfiable(fm, toCNFClauses((bdd and fm.extraConstraints.bdd)), FExprBuilder.lookupFeatureName)
+                        sat(bdd, fm)
                     }
                 )
             }
         }
 
-        val metadata = new VSATBDDQueryMetadata(sentToSAT);
+        val metadata = VSATBDDQueryMetadata(sentToSAT, origin)
         if (cacheHit) {
             VSATMissionControl.bdd_cache_hit(this, fm, metadata);
         } else if (!sentToSAT) { // if sentToSAT then the SatSolver invokes bdd_record_query already

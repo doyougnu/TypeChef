@@ -15,7 +15,9 @@ case class VSATBDDQueryMetadata(
 //                               ,
                                // True when the formula was sent to the solving stage.
                                // False when the formula was simple enough to be solved immediately by typechef.
-                               sentToSat : Boolean
+                               sentToSat : Boolean,
+                               // information on where this metadata was created
+                               origin : String
                            );
 
 object VSATMissionControl {
@@ -102,17 +104,16 @@ object VSATMissionControl {
     private def fmhash_javastrhashcode(fmclauses : IVec[IVecInt]) : Int = fmhash_shortformula(fmclauses).hashCode
 
     private def fmhash_shortformula(fmclauses : IVec[IVecInt]) : String = {
-        val mempty : String = "";
         val orConnective : String = "+";
         val andConnective : String = "*";
 
         def clauseToStr(clause : IVecInt) : String = {
-            var clauseIndicesArray : Array[Int] = new Array[Int](clause.size());
+            val clauseIndicesArray : Array[Int] = new Array[Int](clause.size());
             clause.copyTo(clauseIndicesArray);
             "(" + clauseIndicesArray.mkString(orConnective) + ")"
         };
 
-        var cnf : Array[IVecInt] = new Array[IVecInt](fmclauses.size());
+        val cnf : Array[IVecInt] = new Array[IVecInt](fmclauses.size());
         fmclauses.copyTo(cnf);
         cnf.map(clauseToStr).mkString(andConnective);
     }
@@ -123,7 +124,7 @@ object VSATMissionControl {
         val hashLimit : Long = 1099511627689L; // greatest prime smaller than (2^40)
 
         def hashClause(clause : IVecInt) : Long = {
-            var clauseIndicesArray: Array[Int] = new Array[Int](clause.size());
+            val clauseIndicesArray: Array[Int] = new Array[Int](clause.size());
             clause.copyTo(clauseIndicesArray);
             clauseIndicesArray
                 .map(x => {
@@ -139,7 +140,7 @@ object VSATMissionControl {
         }
 
         var currentPeterPrime : Long = 1L;
-        var cnf : Array[IVecInt] = new Array[IVecInt](fmclauses.size());
+        val cnf : Array[IVecInt] = new Array[IVecInt](fmclauses.size());
         fmclauses.copyTo(cnf);
         cnf
             .map(i => {

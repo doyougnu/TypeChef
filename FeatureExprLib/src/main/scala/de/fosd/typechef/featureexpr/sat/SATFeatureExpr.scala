@@ -153,7 +153,7 @@ sealed abstract class SATFeatureExpr extends FeatureExpr {
         // => So this should be the only point of interest in this file for us.
 
         var ret : Boolean = false;
-        var isCached : Option[Boolean] = cacheIsSatisfiable.get(f);
+        val isCached : Option[Boolean] = cacheIsSatisfiable.get(f);
         if (isCached.isDefined) {
             // cache hit
             ret = isCached.get;

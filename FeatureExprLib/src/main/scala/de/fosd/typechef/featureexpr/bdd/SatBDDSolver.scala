@@ -153,7 +153,7 @@ class SatSolverImpl(featureModel: BDDFeatureModel) {
         // [VSAT BDD] We cannot reconstruct the BDDFeatureExpr we initially had, here.
         // We have to record queries here and cannot do so earlier because this is also invoked by
         // getSatisfyingAssignment and maybe even more places (which we did not find).
-        VSATMissionControl.bdd_record_query(null, featureModel, new VSATBDDQueryMetadata(true));
+        VSATMissionControl.bdd_record_query(null, featureModel, new VSATBDDQueryMetadata(true, "SatSolverImpl.isSatisfiable"));
 
         val startTime = System.currentTimeMillis();
 
