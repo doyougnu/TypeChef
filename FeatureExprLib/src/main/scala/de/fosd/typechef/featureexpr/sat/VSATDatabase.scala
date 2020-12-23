@@ -21,13 +21,21 @@ import de.fosd.typechef.featureexpr.bdd._
 
 object VSATDatabase {
     // Select the database profile in application.conf that you want to use.
-    private val databaseProfileToUse : String = "h2localhostpaul";
+    private val databaseProfileToUse : String =
+        "h2paullinux"
+//        "h2paulbusybox"
+        ;
+
+    // Set this to false if you want to rerun the logging for specific files.
+    // Note that running the logging twice with this being set to false may yield wrong data.
+    private val dropExistingTablesOnFirstRun : Boolean = true;
 
     // Neither touch these
     private val satQueriesTableName : String = "SATQUERIES";
     private val bddQueriesTableName : String = "BDDQUERIES";
     private val featureModelsTableName : String = "FEATUREMODELS";
     private val errorsTableName : String = "ERRORS";
+
     private val tableLine : String = "----------------------------------------";
 
     // Nor these
@@ -77,7 +85,7 @@ object VSATDatabase {
     def setupTable(name : String, createTableQuery : () => DBIO[Int]): Unit = {
         // Creating tables synchronously and crash if something fails.
         var exists : Boolean = evalForced(tableExists(name));
-        if (exists && VSATMissionControl.isFirstRun()) {
+        if (exists && VSATMissionControl.isFirstRun() && dropExistingTablesOnFirstRun) {
             println("[VSATDatabase.setupTable] Cleaning existing table " + name + " because this is the first run.");
             runSyncForced(dropTable(name));
             exists = false;
