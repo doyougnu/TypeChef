@@ -26,8 +26,13 @@ object VSATDatabase {
 //        "h2paulbusybox"
         ;
 
-    // Set this to false if you want to rerun the logging for specific files.
-    // Note that running the logging twice with this being set to false may yield wrong data.
+    /**
+     * If set to true, the tables SATQUERIES, BDDQUERIES, ERRORS, and FEATUREMODELS will be dropped at the beginning of development.
+     * This is necessary to get correct results when starting the logging.
+     * Running the logging twice with this being set to false yields wrong data (e.g. too many cache hits on queries).
+     * Set this to false if you want to rerun the logging for specific files.
+     * If in doubt, leave unchanged or ask Paul.
+     */
     private val dropExistingTablesOnFirstRun : Boolean = true;
 
     // Neither touch these
